@@ -1114,12 +1114,12 @@
     <div class="panel-handle" onclick="togglePanel()">
       <div class="panel-handle-bar"></div>
     </div>
-    <!-- TOP BOX: item details + progress -->
+    <!-- TOP BOX: item details + progress + AI result -->
     <div class="panel-box" style="flex:1;overflow-y:auto;">
       <div id="panel-empty" style="text-align:center;padding:40px 0;color:var(--text3);">
         <div style="font-size:36px;margin-bottom:12px;opacity:0.3;">📋</div>
         <div style="font-size:13px;font-weight:600;">항목을 선택하세요</div>
-        <div style="font-size:11.5px;margin-top:4px;">파일이나 폴더를 클릭하면<br>상세 정보가 표시됩니다</div>
+        <div style="font-size:11.5px;margin-top:4px;">파일을 체크하고 AI 버튼을 누르거나<br>파일을 클릭하면 상세 정보가 표시됩니다</div>
       </div>
       <div id="panel-content" style="display:none;">
         <div class="panel-label">선택된 항목</div>
@@ -1132,6 +1132,15 @@
             <span>＋</span> 단계 추가
           </button>
         </div>
+      </div>
+      <!-- AI 결과 패널 -->
+      <div id="panel-ai" style="display:none;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <button onclick="closePanelAI()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0;line-height:1;">←</button>
+          <div class="panel-label" style="margin:0;" id="panel-ai-title">AI 분석</div>
+        </div>
+        <div id="panel-ai-file" style="font-size:11.5px;color:var(--text3);margin-bottom:12px;padding:8px 10px;background:var(--bg2);border-radius:6px;"></div>
+        <div id="panel-ai-result" style="font-size:13px;color:var(--text);line-height:1.8;"></div>
       </div>
     </div>
 
@@ -2606,27 +2615,63 @@ function renderAIResult(text) {
     .replace(/\n/g, '<br>');
 }
 
+function showPanelAI(title, fileLabel, html) {
+  document.getElementById('panel-empty').style.display   = 'none';
+  document.getElementById('panel-content').style.display = 'none';
+  document.getElementById('panel-ai').style.display      = 'block';
+  document.getElementById('panel-ai-title').textContent  = title;
+  document.getElementById('panel-ai-file').textContent   = fileLabel;
+  document.getElementById('panel-ai-result').innerHTML   = html;
+  // 모바일에서 패널 열기
+  if (window.innerWidth <= 680) document.getElementById('right-panel').classList.add('panel-open');
+}
+
+function closePanelAI() {
+  document.getElementById('panel-ai').style.display = 'none';
+  if (state.selectedFile) {
+    document.getElementById('panel-content').style.display = 'block';
+  } else {
+    document.getElementById('panel-empty').style.display = 'block';
+  }
+}
+
 async function openAI(type) {
   const titles = { summary: '📄 문서 요약', extract: '⚖️ 핵심 쟁점 추출', timeline: '📊 타임라인 생성' };
-  document.getElementById('ai-modal-title').textContent = titles[type];
-  document.getElementById('ai-result').innerHTML = `<div class="ai-loading"><div class="spinner"></div> Gemini가 분석 중입니다...</div>`;
-  openModal('modal-ai');
 
   const key = getGeminiKey();
   if (!key) {
-    document.getElementById('ai-result').innerHTML = `
+    showPanelAI(titles[type], '', `
       <div style="color:var(--danger);font-size:13px;margin-bottom:10px;">⚠️ Gemini API 키가 설정되지 않았습니다.</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">⚙️ 설정에서 API 키를 입력해 주세요.<br><span style="color:var(--text3);">aistudio.google.com → Get API Key (무료)</span></div>
-      <button onclick="closeModal('modal-ai');openSettings();" style="width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">⚙️ API 키 설정하기</button>`;
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">aistudio.google.com → Get API Key (무료)</div>
+      <button onclick="closePanelAI();openSettings();" style="width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">⚙️ API 키 설정하기</button>`);
     return;
   }
 
-  const selectedFile = state.selectedFile ? getDisplayFiles().find(f => f.id === state.selectedFile) : null;
+  // 체크된 파일 우선, 없으면 선택된 파일
+  const allFiles = getDisplayFiles();
+  const checkedWithFile = allFiles.filter(f => f.checked && f.realFile);
+  const target = checkedWithFile[0]
+    || (state.selectedFile ? allFiles.find(f => f.id === state.selectedFile) : null);
+
+  if (!target) {
+    showPanelAI(titles[type], '', `
+      <div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0;">
+        📂 파일을 체크하거나 클릭한 후 AI 버튼을 눌러주세요.<br>
+        <span style="font-size:11.5px;margin-top:6px;display:block;">PDF · 이미지는 내용 직접 분석 가능합니다.</span>
+      </div>`);
+    return;
+  }
+
+  const fileLabel = `📄 ${target.name}  (${target.type.toUpperCase()})`;
+  showPanelAI(titles[type], fileLabel,
+    `<div class="ai-loading"><div class="spinner"></div> Gemini 2.5가 분석 중입니다...</div>`);
+
   try {
-    const result = await callGemini(type, selectedFile);
-    document.getElementById('ai-result').innerHTML = renderAIResult(result);
+    const result = await callGemini(type, target);
+    document.getElementById('panel-ai-result').innerHTML = renderAIResult(result);
   } catch (err) {
-    document.getElementById('ai-result').innerHTML = `<div style="color:var(--danger);font-size:13px;">❌ 오류: ${err.message}</div>`;
+    document.getElementById('panel-ai-result').innerHTML =
+      `<div style="color:var(--danger);font-size:13px;">❌ 오류: ${err.message}</div>`;
   }
 }
 
