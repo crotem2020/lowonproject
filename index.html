@@ -501,6 +501,74 @@
 </head>
 <body>
 
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBUUDQHWpCFab0N9Cc0EQveEaRP4uZ5tuM",
+    authDomain: "lowonproject.firebaseapp.com",
+    projectId: "lowonproject",
+    storageBucket: "lowonproject.firebasestorage.app",
+    messagingSenderId: "515997048143",
+    appId: "1:515997048143:web:38d135d83efe36cccef93a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const DOC_REF = doc(db, 'lowon', 'data');
+
+  // Firestore에 저장
+  window.saveToFirestore = async function() {
+    try {
+      const payload = {
+        projects: state.projects,
+        files: cleanFilesForFirestore(state.files),
+        todos: state.todos,
+        events: state.events,
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(DOC_REF, payload);
+    } catch(e) {
+      console.warn('저장 실패:', e);
+    }
+  };
+
+  // Firestore에서 불러오기
+  window.loadFromFirestore = async function() {
+    try {
+      const snap = await getDoc(DOC_REF);
+      if (snap.exists()) {
+        const d = snap.data();
+        if (d.projects?.length) state.projects = d.projects;
+        if (d.files) state.files = d.files;
+        if (d.todos?.length) state.todos = d.todos;
+        if (d.events?.length) state.events = d.events;
+      }
+    } catch(e) {
+      console.warn('불러오기 실패:', e);
+    }
+  };
+
+  // realFile(File 객체)은 Firestore에 저장 불가 → 제거
+  function cleanFilesForFirestore(files) {
+    const cleaned = {};
+    for (const projId in files) {
+      cleaned[projId] = cleanList(files[projId]);
+    }
+    return cleaned;
+  }
+  function cleanList(list) {
+    return (list || []).map(f => {
+      const copy = { ...f };
+      delete copy.realFile;
+      if (copy.children) copy.children = cleanList(copy.children);
+      return copy;
+    });
+  }
+</script>
+
 <!-- ═══════════ LOGIN ═══════════ -->
 <div id="login-screen">
   <div class="login-card">
@@ -963,7 +1031,7 @@ function doLogin() {
 document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 document.getElementById('login-id').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-pw').focus(); });
 
-function initApp() {
+async function initApp() {
   const name = state.user;
   document.getElementById('user-display-name').textContent = name;
   document.getElementById('user-avatar').textContent = name[0].toUpperCase();
@@ -972,6 +1040,10 @@ function initApp() {
     `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${['일','월','화','수','목','금','토'][d.getDay()]}요일`;
   state.calYear = d.getFullYear();
   state.calMonth = d.getMonth();
+
+  // Firestore에서 데이터 불러오기
+  if (window.loadFromFirestore) await window.loadFromFirestore();
+
   renderProjects();
   renderTodos();
   renderCalendar();
@@ -1103,6 +1175,7 @@ function addProject() {
   renderProjects();
   showToast('프로젝트가 추가되었습니다');
   openProject(id);
+  if (window.saveToFirestore) window.saveToFirestore();
 }
 
 // ═══════════ FILES ═══════════
@@ -1295,6 +1368,7 @@ function reorderFiles(srcId, targetId, insertBefore) {
   // Write back to state
   writeDisplayFiles(list);
   renderFiles();
+  if (window.saveToFirestore) window.saveToFirestore();
 }
 
 function moveFileIntoFolder(srcId, folderId) {
@@ -1309,6 +1383,7 @@ function moveFileIntoFolder(srcId, folderId) {
   writeDisplayFiles(list);
   renderFiles();
   showToast(`📁 "${item.name}"이(가) "${folder.name}" 폴더로 이동되었습니다`);
+  if (window.saveToFirestore) window.saveToFirestore();
 }
 
 // ═══════════ REAL FILE UPLOAD ═══════════
@@ -1467,6 +1542,7 @@ function addProgressStep() {
   if (!f.progress) f.progress = [];
   f.progress.push({ text, done: false });
   renderProgress(f);
+  if (window.saveToFirestore) window.saveToFirestore();
 }
 
 function getAllFiles(projectId) {
@@ -1478,7 +1554,7 @@ function toggleCheck(id, e) {
   e.stopPropagation();
   const files = getDisplayFiles();
   const f = files.find(x => x.id === id);
-  if (f) { f.checked = !f.checked; renderFiles(); updateBadges(); }
+  if (f) { f.checked = !f.checked; renderFiles(); updateBadges(); if (window.saveToFirestore) window.saveToFirestore(); }
 }
 
 function toggleStar(id, e) {
@@ -1491,6 +1567,7 @@ function toggleStar(id, e) {
     updateBadges();
     if (state.currentView === 'important') renderImportant();
     showToast(f.starred ? '⭐ 중요 항목으로 표시했습니다' : '별표를 해제했습니다');
+    if (window.saveToFirestore) window.saveToFirestore();
   }
 }
 
@@ -1545,6 +1622,7 @@ function addFile() {
   renderFiles();
   renderProjects();
   showToast('항목이 추가되었습니다');
+  if (window.saveToFirestore) window.saveToFirestore();
 }
 
 function formatFileSize(bytes) {
@@ -1580,7 +1658,7 @@ function renderTodos() {
 }
 function toggleTodo(id) {
   const t = state.todos.find(x => x.id === id);
-  if (t) { t.done = !t.done; renderTodos(); updateBadges(); }
+  if (t) { t.done = !t.done; renderTodos(); updateBadges(); if (window.saveToFirestore) window.saveToFirestore(); }
 }
 function addTodo() {
   const input = document.getElementById('todo-input');
@@ -1590,6 +1668,7 @@ function addTodo() {
   input.value = '';
   renderTodos();
   updateBadges();
+  if (window.saveToFirestore) window.saveToFirestore();
 }
 
 // ═══════════ IMPORTANT ═══════════
@@ -1627,7 +1706,7 @@ function renderImportant() {
 }
 function unstarFromImportant(projId, fileId) {
   const f = (state.files[projId] || []).find(x => x.id === fileId);
-  if (f) { f.starred = false; renderImportant(); updateBadges(); }
+  if (f) { f.starred = false; renderImportant(); updateBadges(); if (window.saveToFirestore) window.saveToFirestore(); }
 }
 
 // ═══════════ CALENDAR ═══════════
@@ -1720,6 +1799,7 @@ function addCalEvent() {
   closeModal('modal-event');
   renderCalendar();
   showToast('일정이 추가되었습니다');
+  if (window.saveToFirestore) window.saveToFirestore();
 }
 
 // ═══════════ SEARCH ═══════════
@@ -1961,6 +2041,7 @@ function deleteProject(id, e) {
       }
       renderProjects();
       showToast(`🗑️ "${p.name}" 프로젝트가 삭제되었습니다`);
+      if (window.saveToFirestore) window.saveToFirestore();
     }
   );
 }
@@ -1983,6 +2064,7 @@ function deleteFile(fileId, e) {
       renderFiles();
       renderProjects();
       showToast(`🗑️ "${f.name}"이(가) 삭제되었습니다`);
+      if (window.saveToFirestore) window.saveToFirestore();
     }
   );
 }
