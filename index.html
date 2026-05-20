@@ -1950,6 +1950,7 @@ function importRealFiles(fileList) {
   renderFiles();
   renderProjects();
   showToast(`✅ ${added.length}개 파일이 추가되었습니다`);
+  if (window.saveUserData) window.saveUserData(state.user);
 }
 
 function handleFileInputChange(input) {
