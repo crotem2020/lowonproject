@@ -314,17 +314,16 @@
 
   /* AI PANEL */
   .ai-tool {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px; padding: 11px 12px;
     border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s;
-    margin-bottom: 6px; border: 1.5px solid var(--border);
+    margin-bottom: 5px; border: 1.5px solid var(--border);
   }
   .ai-tool:hover { background: var(--accent-light); border-color: var(--accent); }
-  .ai-icon { font-size: 20px; }
-  .ai-name { font-size: 13px; font-weight: 700; color: var(--text); }
-  .ai-desc { font-size: 11px; color: var(--text3); }
+  .ai-icon { font-size: 18px; flex-shrink: 0; }
+  .ai-name { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; line-height: 1; }
   .ai-badge {
     margin-left: auto; font-size: 9.5px; background: var(--accent-light); color: var(--accent);
-    border-radius: 4px; padding: 2px 6px; font-weight: 700;
+    border-radius: 4px; padding: 2px 6px; font-weight: 700; flex-shrink: 0;
   }
 
   /* ── CALENDAR VIEW ── */
@@ -1149,26 +1148,17 @@
       <div class="panel-label">AI 서비스</div>
       <div class="ai-tool" onclick="openAI('summary')">
         <span class="ai-icon">🤖</span>
-        <div>
-          <div class="ai-name">문서 요약</div>
-          <div class="ai-desc">NotebookLM 방식 AI 요약</div>
-        </div>
+        <div class="ai-name">문서 요약</div>
         <span class="ai-badge">AI</span>
       </div>
       <div class="ai-tool" onclick="openAI('extract')">
         <span class="ai-icon">📑</span>
-        <div>
-          <div class="ai-name">핵심 쟁점 추출</div>
-          <div class="ai-desc">법률 문서 쟁점 분석</div>
-        </div>
+        <div class="ai-name">핵심 쟁점 추출</div>
         <span class="ai-badge">AI</span>
       </div>
       <div class="ai-tool" onclick="openAI('timeline')">
         <span class="ai-icon">📊</span>
-        <div>
-          <div class="ai-name">타임라인 생성</div>
-          <div class="ai-desc">사건 경과 자동 정리</div>
-        </div>
+        <div class="ai-name">타임라인 생성</div>
         <span class="ai-badge">AI</span>
       </div>
     </div>
