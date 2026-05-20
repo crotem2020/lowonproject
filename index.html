@@ -869,6 +869,10 @@
       }
     } catch(e) { console.warn('불러오기 실패:', e); }
   };
+
+  // Firebase 모듈 준비 완료 신호
+  window._fbReady = true;
+  document.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
 
 <!-- ═══════════ LOGIN / SIGNUP ═══════════ -->
@@ -3196,10 +3200,10 @@ function showToast() {}
 function showSaveIndicator() {}
 
 // ═══════════ 자동 로그인 (페이지 로드 시) ═══════════
-(function restoreSession() {
+function _doRestoreSession() {
   const savedUser     = localStorage.getItem('session_user');
   const savedUserInfo = localStorage.getItem('session_userInfo');
-  if (!savedUser) return; // 저장된 세션 없으면 로그인 화면 유지
+  if (!savedUser) return;
   try {
     state.user     = savedUser;
     state.userInfo = JSON.parse(savedUserInfo);
@@ -3210,7 +3214,14 @@ function showSaveIndicator() {}
     localStorage.removeItem('session_user');
     localStorage.removeItem('session_userInfo');
   }
-})();
+}
+// Firebase 모듈은 type="module"이라 항상 지연 실행됨
+// → fb-ready 이벤트를 기다렸다가 세션 복원
+if (window._fbReady) {
+  _doRestoreSession();
+} else {
+  document.addEventListener('fb-ready', _doRestoreSession, { once: true });
+}
 </script>
 </body>
 </html>
