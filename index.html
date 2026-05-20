@@ -1661,6 +1661,13 @@ function openFolder(fileId) {
   updateBreadcrumb();
   renderFiles();
   clearPanel();
+  // 타이틀을 폴더명으로 변경
+  const allFiles = state.files[state.currentProject] || [];
+  const folder = allFiles.find(f => f.id === fileId);
+  if (folder) {
+    document.getElementById('project-title').textContent = folder.name;
+    document.getElementById('project-subtitle').textContent = folder.memo || '';
+  }
 }
 
 function updateBreadcrumb() {
