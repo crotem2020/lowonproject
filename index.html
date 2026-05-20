@@ -273,12 +273,22 @@
   [data-theme="dark"] .status-wait { background: #350A0A; color: #D46060; }
   [data-theme="dark"] .status-progress { background: #1A1B40; color: #9B9DE8; }
 
+  .col-star { width: 64px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 2px; }
   .star-btn {
     background: none; border: none; cursor: pointer; font-size: 17px;
     color: var(--border); transition: color 0.15s; padding: 2px 4px;
   }
   .star-btn.starred { color: var(--star); }
   .star-btn:hover { color: var(--star); }
+  .del-btn {
+    background: none; border: none; cursor: pointer; font-size: 14px;
+    color: var(--text3); transition: color 0.15s; padding: 2px 4px;
+    opacity: 0; line-height: 1; font-weight: 700;
+  }
+  .file-item:hover .del-btn { opacity: 1; }
+  .del-btn:hover { color: var(--danger) !important; opacity: 1; }
+  [data-theme="dark"] .del-btn { color: var(--text2); }
+  [data-theme="dark"] .del-btn:hover { color: var(--danger) !important; }
 
   .date-text { font-size: 11.5px; color: var(--text3); text-align: center; }
 
@@ -1767,25 +1777,21 @@ function renderFiles() {
       </div>
       <div class="col-icon"><span class="file-icon">${FILE_ICONS[f.type] || '📄'}</span></div>
       <div class="col-name">
-        <div style="display:flex;align-items:center;gap:4px;">
-          <div class="file-name ${f.checked ? 'done' : ''}">${f.name}</div>
-          <div class="file-actions">
-            <button class="file-act-btn" title="삭제" onclick="deleteFile('${f.id}',event)">🗑</button>
-          </div>
-        </div>
+        <div class="file-name ${f.checked ? 'done' : ''}">${f.name}</div>
         <div class="file-meta">${f.type.toUpperCase()} · ${f.date}${f.fileSize ? ' · ' + formatFileSize(f.fileSize) : ''}</div>
       </div>
       <div class="col-status"><span class="status-pill ${sc}">${sl}</span></div>
       <div class="col-date"><span class="date-text">${formatDate(f.date)}</span></div>
       <div class="col-star">
         <button class="star-btn ${f.starred ? 'starred' : ''}" onclick="toggleStar('${f.id}',event)">★</button>
+        <button class="del-btn" title="삭제" onclick="deleteFile('${f.id}',event)">✕</button>
       </div>
     `;
     if (f.type === 'folder') {
       div.ondblclick = () => openFolder(f.id);
     }
     div.onclick = (e) => {
-      if (e.target.classList.contains('star-btn') || e.target.classList.contains('check-circle')) return;
+      if (e.target.classList.contains('star-btn') || e.target.classList.contains('check-circle') || e.target.classList.contains('del-btn')) return;
       selectFile(f.id);
     };
 
