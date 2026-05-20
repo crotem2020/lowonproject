@@ -77,7 +77,7 @@
   .login-err { font-size: 12px; color: var(--danger); margin-top: 10px; min-height: 18px; }
 
   /* ───────── MAIN LAYOUT ───────── */
-  #app { display: none; height: 100vh; flex-direction: row; overflow: hidden; }
+  #app { display: none; height: 100vh; flex-direction: row; overflow: hidden; position: relative; }
   #app.visible { display: flex; }
 
   /* ── MAIN APP LAYOUT ── */
@@ -544,6 +544,56 @@
     #signup-card > div[style*="grid"] { grid-template-columns: 1fr !important; }
   }
 
+  /* ── VIEW FADE-IN ── */
+  @keyframes viewFadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  #today-view.active, #important-view.active, #calendar-view.active { animation: viewFadeIn 0.18s ease both; }
+
+  /* ── APP LOADING OVERLAY ── */
+  #app-loading {
+    position: absolute; inset: 0; background: var(--bg); z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; transition: opacity 0.3s;
+  }
+  #app-loading.done { opacity: 0; pointer-events: none; }
+  .app-loading-logo { font-size: 26px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
+  .app-loading-sub  { font-size: 12.5px; color: var(--text3); }
+  .app-loading-dots { display: flex; gap: 5px; }
+  .app-loading-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: dotBounce 1.2s infinite; }
+  .app-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .app-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotBounce { 0%,80%,100% { transform:scale(0.5); opacity:0.3; } 40% { transform:scale(1); opacity:1; } }
+
+  /* ── SAVE INDICATOR ── */
+  #save-indicator {
+    position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
+    background: var(--success); color: #fff; font-size: 11.5px; font-weight: 700;
+    padding: 5px 14px; border-radius: 20px; z-index: 198;
+    opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap;
+  }
+  #save-indicator.show { opacity: 1; }
+
+  /* ── BREADCRUMB BAR ── */
+  #breadcrumb-bar {
+    display: none; align-items: center; gap: 4px; padding: 7px 28px;
+    font-size: 12px; color: var(--text3); flex-shrink: 0;
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+  }
+  #breadcrumb-bar.visible { display: flex; }
+  .bc-crumb { cursor: pointer; padding: 2px 5px; border-radius: 4px; transition: all 0.12s; }
+  .bc-crumb:hover { color: var(--accent); background: var(--accent-light); }
+  .bc-crumb.active { color: var(--text); font-weight: 700; cursor: default; }
+  .bc-crumb.active:hover { background: none; }
+  .bc-sep { color: var(--border); font-size: 10px; }
+
+  /* ── FOLDER BADGE ── */
+  .folder-badge {
+    font-size: 10px; color: var(--text3); background: var(--bg2);
+    padding: 1px 6px; border-radius: 10px; margin-left: 4px; font-weight: 600;
+  }
+
+  /* ── STEP INPUT MODAL ── */
+  .step-modal { width: 360px; }
+
   /* NOTIFICATION TOAST */
   .toast {
     position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(60px);
@@ -636,7 +686,7 @@
     #today-view, #calendar-view { padding: 16px !important; }
     .main-header { padding: 16px 16px 0 !important; }
     .file-area { padding: 12px 16px 80px !important; }
-    .breadcrumb { margin: 10px 16px 0 !important; }
+    #breadcrumb-bar { padding: 7px 16px !important; }
     .view-section { padding: 16px !important; }
 
     /* Adjust column widths for small screens */
@@ -790,6 +840,7 @@
         updatedAt: new Date().toISOString()
       };
       await setDoc(ref, payload);
+      if (typeof showSaveIndicator === 'function') showSaveIndicator();
     } catch(e) { console.warn('저장 실패:', e); }
   };
 
@@ -915,6 +966,13 @@
 
 <!-- ═══════════ APP ═══════════ -->
 <div id="app">
+
+  <!-- ── APP LOADING OVERLAY ── -->
+  <div id="app-loading" style="display:none;">
+    <div class="app-loading-logo">lawoneAI</div>
+    <div class="app-loading-dots"><span></span><span></span><span></span></div>
+    <div class="app-loading-sub">데이터 불러오는 중...</div>
+  </div>
 
   <!-- ── MOBILE HEADER ── -->
   <div class="mobile-header">
@@ -1048,10 +1106,12 @@
         </div>
         <div class="main-actions">
           <button class="btn-outline" onclick="openAddFile('folder')">📁 폴더 추가</button>
-          <button class="btn-primary" onclick="openAddFile('file')">＋ 파일 추가</button>
+          <button class="btn-primary" onclick="document.getElementById('file-upload-input').click()">↑ 파일 업로드</button>
           <button class="btn-danger-outline" id="delete-selected-btn" onclick="deleteSelected()" style="display:none;">🗑 선택 삭제</button>
         </div>
       </div>
+      <!-- 브레드크럼 -->
+      <div id="breadcrumb-bar"></div>
       <div class="file-area-wrap">
         <div class="file-area" id="file-area-drop">
           <div class="file-list-header">
@@ -1063,7 +1123,7 @@
             <div class="col-date">날짜</div>
             <div class="col-star">★</div>
           </div>
-          <input type="file" id="file-upload-input" style="display:none" onchange="handleFileInputChange(this)">
+          <input type="file" id="file-upload-input" multiple accept="*/*" style="display:none" onchange="handleFileInputChange(this)">
           <div id="file-list"></div>
         </div>
       </div>
@@ -1115,10 +1175,19 @@
     </div>
     <!-- TOP BOX: item details + progress + AI result -->
     <div class="panel-box" style="flex:1;overflow-y:auto;">
-      <div id="panel-empty" style="text-align:center;padding:40px 0;color:var(--text3);">
-        <div style="font-size:36px;margin-bottom:12px;opacity:0.3;">📋</div>
-        <div style="font-size:13px;font-weight:600;">항목을 선택하세요</div>
-        <div style="font-size:11.5px;margin-top:4px;">파일을 체크하고 AI 버튼을 누르거나<br>파일을 클릭하면 상세 정보가 표시됩니다</div>
+      <div id="panel-empty" style="text-align:center;padding:32px 16px;color:var(--text3);">
+        <div style="font-size:40px;margin-bottom:14px;opacity:0.25;">⚖️</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px;">파일을 선택하세요</div>
+        <div style="font-size:11.5px;line-height:1.8;margin-bottom:20px;">파일을 클릭하면 진행 현황이 표시됩니다<br>체크 후 AI 버튼으로 문서를 분석하세요</div>
+        <div style="border-top:1px solid var(--border);padding-top:16px;text-align:left;">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:0.8px;margin-bottom:10px;text-transform:uppercase;">빠른 도움말</div>
+          <div style="font-size:11.5px;color:var(--text3);line-height:2;">
+            ☑️ 체크 → 오늘 할 일 추가<br>
+            ⭐ 별표 → 중요 항목 표시<br>
+            ↑ 업로드 → 파일 직접 등록<br>
+            📂 드래그&드롭 → 폴더째 업로드
+          </div>
+        </div>
       </div>
       <div id="panel-content" style="display:none;">
         <div class="panel-label">선택된 항목</div>
@@ -1278,7 +1347,7 @@
     <div style="display:flex;align-items:center;gap:12px;background:var(--accent-light);border-radius:10px;padding:14px 16px;margin-bottom:18px;">
       <div style="font-size:28px;">✨</div>
       <div>
-        <div style="font-size:13px;font-weight:700;color:var(--text);">Gemini 1.5 Flash</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Gemini 2.5 Flash</div>
         <div style="font-size:11.5px;color:var(--text3);margin-top:2px;">Google AI · 무료 한도 제공 · 법률 문서 분석</div>
       </div>
     </div>
@@ -1343,6 +1412,24 @@
     </div>
   </div>
 </div>
+
+<!-- Add Progress Step -->
+<div class="modal-overlay" id="modal-step">
+  <div class="modal step-modal">
+    <div class="modal-title">진행 단계 추가</div>
+    <div class="modal-field">
+      <label>단계 이름</label>
+      <input type="text" id="step-name-input" placeholder="예: 서류 제출, 의뢰인 면담, 기일 확인...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-step')">취소</button>
+      <button class="btn-primary" onclick="confirmAddStep()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE INDICATOR -->
+<div id="save-indicator">✓ 저장됨</div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -1519,6 +1606,24 @@ async function doSignup() {
 document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 document.getElementById('login-id').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-pw').focus(); });
 
+// ── 전역 키보드 단축키 ──
+document.addEventListener('keydown', e => {
+  // Escape: 열린 모달 닫기
+  if (e.key === 'Escape') {
+    const open = document.querySelector('.modal-overlay.open');
+    if (open) { closeModal(open.id); return; }
+  }
+  // Enter: 모달 폼 제출 (textarea 제외)
+  if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA') {
+    const open = document.querySelector('.modal-overlay.open');
+    if (!open) return;
+    if (open.id === 'modal-project') { addProject(); return; }
+    if (open.id === 'modal-file')    { addFile(); return; }
+    if (open.id === 'modal-step')    { confirmAddStep(); return; }
+    if (open.id === 'modal-event')   { addCalEvent(); return; }
+  }
+});
+
 async function initApp() {
   const info = state.userInfo || {};
   const displayName = info.name || state.user;
@@ -1528,7 +1633,6 @@ async function initApp() {
   document.getElementById('user-avatar').textContent = displayName[0].toUpperCase();
   document.getElementById('user-role-label').textContent = roleLabel;
 
-  // 관리자/마이페이지 버튼 표시
   document.getElementById('admin-btn-wrap').style.display = info.isAdmin ? 'block' : 'none';
   document.getElementById('mypage-btn-wrap').style.display = info.isAdmin ? 'none' : 'block';
 
@@ -1538,18 +1642,25 @@ async function initApp() {
   state.calYear = d.getFullYear();
   state.calMonth = d.getMonth();
 
-  // 유저별 데이터 불러오기
+  // 로딩 오버레이 표시
+  const loadingEl = document.getElementById('app-loading');
+  if (loadingEl) { loadingEl.style.display = 'flex'; loadingEl.classList.remove('done'); }
+
   if (window.loadUserData) {
     await window.loadUserData(state.user);
-    // 신규 유저 — 프로젝트가 없으면 기본 프로젝트 생성
     if (!state.projects.length) {
       const defaultId = 'p' + Date.now();
       state.projects = [{ id: defaultId, name: '새 프로젝트', color: '#5B6E8C', memo: '' }];
       state.files[defaultId] = [];
       if (window.saveUserData) window.saveUserData(state.user);
     }
-    // IndexedDB에서 파일 바이너리 복원 (새로고침 후에도 파일 내용 유지)
     await restoreRealFiles();
+  }
+
+  // 로딩 오버레이 제거
+  if (loadingEl) {
+    loadingEl.classList.add('done');
+    setTimeout(() => { loadingEl.style.display = 'none'; }, 320);
   }
 
   renderProjects();
@@ -1563,7 +1674,10 @@ async function initApp() {
 function toggleTheme() {
   state.theme = state.theme === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', state.theme === 'dark' ? 'dark' : '');
-  document.getElementById('theme-btn').textContent = state.theme === 'dark' ? '☀️' : '🌙';
+  const icon = state.theme === 'dark' ? '☀️' : '🌙';
+  document.getElementById('theme-btn').textContent = icon;
+  const mobileBtn = document.getElementById('theme-btn-mobile');
+  if (mobileBtn) mobileBtn.textContent = icon;
 }
 
 // ═══════════ VIEW SWITCHING ═══════════
@@ -1668,7 +1782,6 @@ function openProject(id) {
 
   const proj = state.projects.find(p => p.id === id);
   document.getElementById('project-title').textContent = proj.name;
-  // subtitle removed
   updateBreadcrumb();
   renderFiles();
   clearPanel();
@@ -1706,32 +1819,68 @@ function initAreaDrop() {
 function openFolder(fileId) {
   state.currentFolder = fileId;
   state.selectedFile = null;
+  const allFiles = state.files[state.currentProject] || [];
+  const folder = allFiles.find(f => f.id === fileId);
+  if (folder) document.getElementById('project-title').textContent = folder.name;
   updateBreadcrumb();
   renderFiles();
   clearPanel();
-  // 타이틀을 폴더명으로 변경
-  const allFiles = state.files[state.currentProject] || [];
-  const folder = allFiles.find(f => f.id === fileId);
-  if (folder) {
-    document.getElementById('project-title').textContent = folder.name;
-  }
 }
 
-function updateBreadcrumb() { /* breadcrumb removed */ }
+function updateBreadcrumb() {
+  const bar = document.getElementById('breadcrumb-bar');
+  if (!bar) return;
+  const proj = state.projects.find(p => p.id === state.currentProject);
+  if (!proj) { bar.innerHTML = ''; bar.classList.remove('visible'); return; }
+
+  const parts = [{ label: proj.name, action: () => { state.currentFolder = null; openProject(state.currentProject); } }];
+
+  if (state.currentFolder) {
+    const allFiles = state.files[state.currentProject] || [];
+    const folder = allFiles.find(f => f.id === state.currentFolder);
+    if (folder) parts.push({ label: `📁 ${folder.name}`, action: null });
+  }
+
+  bar.innerHTML = parts.map((p, i) => {
+    const isLast = i === parts.length - 1;
+    const crumb = `<span class="bc-crumb ${isLast ? 'active' : ''}" data-idx="${i}">${p.label}</span>`;
+    return i < parts.length - 1 ? crumb + '<span class="bc-sep">›</span>' : crumb;
+  }).join('');
+
+  // Attach click handlers
+  bar.querySelectorAll('.bc-crumb:not(.active)').forEach((el, i) => {
+    el.onclick = parts[i].action;
+  });
+
+  bar.classList.toggle('visible', parts.length > 0);
+}
+
+let _saveIndicatorTimer;
+function showSaveIndicator() {
+  const el = document.getElementById('save-indicator');
+  if (!el) return;
+  el.classList.add('show');
+  clearTimeout(_saveIndicatorTimer);
+  _saveIndicatorTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
 
 // ═══════════ PROJECTS ═══════════
+function countFilesRecursive(list) {
+  return (list || []).reduce((acc, f) => acc + (f.type === 'folder' ? countFilesRecursive(f.children) : 1), 0);
+}
+
 function renderProjects() {
   const el = document.getElementById('project-list');
   el.innerHTML = '';
   state.projects.forEach(p => {
-    const files = state.files[p.id] || [];
+    const count = countFilesRecursive(state.files[p.id]);
     const div = document.createElement('div');
     div.className = 'project-item';
     div.dataset.id = p.id;
     div.innerHTML = `
       <div class="project-dot" style="background:${p.color}"></div>
       <div class="project-name">${p.name}</div>
-      <div class="project-count">${files.length}</div>
+      <div class="project-count">${count}</div>
       <button class="project-del" title="프로젝트 삭제" onclick="deleteProject('${p.id}',event)">✕</button>
     `;
     div.onclick = () => openProject(p.id);
@@ -1797,7 +1946,16 @@ function renderFiles() {
   const el = document.getElementById('file-list');
   const files = getDisplayFiles();
   if (!files.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div><div class="empty-text">항목이 없습니다</div><div class="empty-sub">파일이나 폴더를 추가해 보세요</div></div>`;
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <div class="empty-text">파일이 없습니다</div>
+        <div class="empty-sub" style="line-height:1.9;margin-top:6px;">
+          파일을 이 영역에 드래그&드롭하거나<br>
+          위의 <strong>↑ 파일 업로드</strong> 버튼을 사용하세요<br>
+          <span style="font-size:11px;color:var(--text3);">PDF · Word · HWP · 이미지 · 폴더 모두 지원</span>
+        </div>
+      </div>`;
     return;
   }
   el.innerHTML = '';
@@ -1818,7 +1976,10 @@ function renderFiles() {
       <div class="col-icon"><span class="file-icon">${FILE_ICONS[f.type] || '📄'}</span></div>
       <div class="col-name">
         <div class="file-name ${f.checked ? 'done' : ''}">${f.name}</div>
-        <div class="file-meta">${f.type.toUpperCase()} · ${f.date}${f.fileSize ? ' · ' + formatFileSize(f.fileSize) : ''}</div>
+        <div class="file-meta">${f.type === 'folder'
+          ? `📁 폴더 · ${(f.children||[]).length}개 항목 · 더블클릭으로 열기`
+          : `${f.type.toUpperCase()} · ${f.date}${f.fileSize ? ' · ' + formatFileSize(f.fileSize) : ''}`
+        }</div>
       </div>
       <div class="col-status"><span class="status-pill ${sc}">${sl}</span></div>
       <div class="col-date"><span class="date-text">${formatDate(f.date)}</span></div>
@@ -1991,7 +2152,7 @@ async function importRealFiles(fileList) {
   if (!state.currentProject) { showToast('먼저 프로젝트를 선택하세요'); return; }
   const today = new Date().toISOString().slice(0, 10);
   const added = [];
-  for (const file of Array.from(fileList).slice(0, 1)) {
+  for (const file of Array.from(fileList)) {
     const type = getFileType(file.name);
     const f = {
       id: 'f' + Date.now() + Math.random().toString(36).slice(2),
@@ -2191,13 +2352,21 @@ function toggleStep(fileId, stepIdx) {
 }
 
 function addProgressStep() {
+  if (!state.selectedFile) return;
+  document.getElementById('step-name-input').value = '';
+  openModal('modal-step');
+  setTimeout(() => document.getElementById('step-name-input').focus(), 80);
+}
+function confirmAddStep() {
+  const text = document.getElementById('step-name-input').value.trim();
+  if (!text) { showToast('단계 이름을 입력하세요'); return; }
   const f = findFileInState(state.selectedFile);
   if (!f) return;
-  const text = prompt('새 단계 이름:');
-  if (!text) return;
   if (!f.progress) f.progress = [];
   f.progress.push({ text, done: false });
+  closeModal('modal-step');
   renderProgress(f);
+  showSaveIndicator();
   if (window.saveUserData) window.saveUserData(state.user);
 }
 
