@@ -214,6 +214,23 @@
   }
 
   .file-area-wrap { position: relative; flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .file-area.os-dragover {
+    outline: 2.5px dashed var(--accent);
+    outline-offset: -4px;
+    background: var(--accent-light);
+  }
+  .file-area.os-dragover::after {
+    content: '📂 여기에 놓으세요';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    pointer-events: none;
+  }
   .drag-handle {
     color: var(--text3); font-size: 13px; cursor: grab; padding: 0 6px 0 0;
     opacity: 0; transition: opacity 0.15s; flex-shrink: 0; user-select: none;
@@ -1604,6 +1621,35 @@ function openProject(id) {
   updateBreadcrumb();
   renderFiles();
   clearPanel();
+  initAreaDrop();
+}
+
+function initAreaDrop() {
+  const area = document.getElementById('file-area-drop');
+  if (!area || area._dropReady) return;
+  area._dropReady = true;
+
+  let counter = 0;
+  area.addEventListener('dragenter', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    counter++;
+    area.classList.add('os-dragover');
+  });
+  area.addEventListener('dragleave', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    counter--;
+    if (counter <= 0) { counter = 0; area.classList.remove('os-dragover'); }
+  });
+  area.addEventListener('dragover', e => {
+    if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+  });
+  area.addEventListener('drop', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    counter = 0;
+    area.classList.remove('os-dragover');
+    importDroppedItems(e.dataTransfer);
+  });
 }
 
 function openFolder(fileId) {
