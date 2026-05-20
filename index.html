@@ -1646,7 +1646,7 @@ function openProject(id) {
 
   const proj = state.projects.find(p => p.id === id);
   document.getElementById('project-title').textContent = proj.name;
-  document.getElementById('project-subtitle').textContent = proj.memo || '';
+  // subtitle removed
   updateBreadcrumb();
   renderFiles();
   clearPanel();
@@ -1668,19 +1668,7 @@ function openFolder(fileId) {
   }
 }
 
-function updateBreadcrumb() {
-  const bc = document.getElementById('breadcrumb');
-  const proj = state.projects.find(p => p.id === state.currentProject);
-  let html = `<span onclick="openProject('${proj.id}')">${proj.name}</span>`;
-  if (state.currentFolder) {
-    const allFiles = state.files[state.currentProject] || [];
-    const folder = allFiles.find(f => f.id === state.currentFolder);
-    if (folder) {
-      html += `<span class="sep">›</span><span>${folder.name}</span>`;
-    }
-  }
-  bc.innerHTML = html;
-}
+function updateBreadcrumb() { /* breadcrumb removed */ }
 
 // ═══════════ PROJECTS ═══════════
 function renderProjects() {
