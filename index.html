@@ -1478,6 +1478,9 @@ async function doLogin() {
 }
 
 function enterApp() {
+  // 로그인 세션을 localStorage에 저장 → 새로고침 후 자동 복원
+  localStorage.setItem('session_user',     state.user);
+  localStorage.setItem('session_userInfo', JSON.stringify(state.userInfo));
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   initApp();
@@ -2854,6 +2857,9 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 // ═══════════ LOGOUT ═══════════
 function doLogout() {
   confirmAction('로그아웃', '정말 로그아웃 하시겠습니까?', () => {
+    // localStorage 세션 삭제
+    localStorage.removeItem('session_user');
+    localStorage.removeItem('session_userInfo');
     state.user = null;
     state.userInfo = null;
     state.projects = [];
@@ -2983,6 +2989,23 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
+
+// ═══════════ 자동 로그인 (페이지 로드 시) ═══════════
+(function restoreSession() {
+  const savedUser     = localStorage.getItem('session_user');
+  const savedUserInfo = localStorage.getItem('session_userInfo');
+  if (!savedUser) return; // 저장된 세션 없으면 로그인 화면 유지
+  try {
+    state.user     = savedUser;
+    state.userInfo = JSON.parse(savedUserInfo);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } catch(e) {
+    localStorage.removeItem('session_user');
+    localStorage.removeItem('session_userInfo');
+  }
+})();
 </script>
 </body>
 </html>
