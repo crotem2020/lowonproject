@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lowon — 법률 업무 플랫폼</title>
+<title>lawoneAI — 법률 업무 AI 플랫폼</title>
 <style>
   :root {
     --bg: #F5F3EF;
@@ -830,8 +830,8 @@
 
   <!-- 로그인 카드 -->
   <div class="login-card" id="login-card">
-    <div class="login-logo">Lowon</div>
-    <div class="login-sub">법률 업무 통합 플랫폼</div>
+    <div class="login-logo">lawoneAI</div>
+    <div class="login-sub">법률 업무를 원스톱으로, AI로 처리하다</div>
     <div class="login-field">
       <label>아이디</label>
       <input type="text" id="login-id" placeholder="아이디를 입력하세요" autocomplete="username">
@@ -851,7 +851,7 @@
   <!-- 회원가입 카드 -->
   <div class="login-card" id="signup-card" style="display:none;width:480px;max-width:96vw;">
     <div class="login-logo" style="font-size:28px;">회원가입</div>
-    <div class="login-sub">Lowon 계정을 만들어보세요</div>
+    <div class="login-sub">lawoneAI 계정을 만들어보세요</div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px;">
       <div class="login-field">
@@ -920,7 +920,7 @@
 
   <!-- ── MOBILE HEADER ── -->
   <div class="mobile-header">
-    <div class="mobile-logo">Lowon</div>
+    <div class="mobile-logo">lawoneAI</div>
     <div class="mobile-header-actions">
       <button class="hamburger-btn" onclick="openSettings()" title="설정">⚙️</button>
       <button class="hamburger-btn" onclick="toggleTheme()" id="theme-btn-mobile">🌙</button>
@@ -935,7 +935,7 @@
   <div id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-top-row">
-        <div class="sidebar-logo">Lowon</div>
+        <div class="sidebar-logo">lawoneAI</div>
         <div class="sidebar-top-actions">
           <button class="theme-btn" onclick="openSettings()" title="AI 설정">⚙️</button>
           <button class="theme-btn" onclick="toggleTheme()" title="테마 변경" id="theme-btn">🌙</button>
@@ -1450,9 +1450,9 @@ async function doLogin() {
   if (!id || !pw) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
 
   // 관리자 계정
-  if (id === 'lowon' && pw === 'lowon') {
-    state.user = 'lowon';
-    state.userInfo = { name: 'lowon', role: '관리자', isAdmin: true };
+  if (id === 'lawone' && pw === 'lawone') {
+    state.user = 'lawone';
+    state.userInfo = { name: 'lawone', role: '관리자', isAdmin: true };
     enterApp();
     return;
   }
@@ -1493,7 +1493,7 @@ async function doSignup() {
   if (pw.length < 6)             { errEl.textContent = '비밀번호는 6자 이상이어야 합니다.'; return; }
   if (pw !== pw2)                { errEl.textContent = '비밀번호가 일치하지 않습니다.'; return; }
   if (!agree)                    { errEl.textContent = '개인정보처리방침에 동의해주세요.'; return; }
-  if (userId === 'lowon')        { errEl.textContent = '사용할 수 없는 아이디입니다.'; return; }
+  if (userId === 'lawone')       { errEl.textContent = '사용할 수 없는 아이디입니다.'; return; }
 
   errEl.textContent = '가입 중...';
   try {
