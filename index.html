@@ -804,24 +804,48 @@
 
 <!-- Settings Modal -->
 <div class="modal-overlay" id="modal-settings">
-  <div class="modal">
+  <div class="modal" style="width:460px;">
     <div class="modal-title">⚙️ AI 설정</div>
+
+    <!-- AI 선택 -->
     <div class="modal-field">
-      <label>Gemini API 키</label>
-      <input type="password" id="settings-api-key" placeholder="AIzaSy...">
-      <div style="font-size:11px;color:var(--text3);margin-top:6px;">
-        발급: <strong>aistudio.google.com</strong> → Get API Key (무료)
+      <label>사용할 AI 선택</label>
+      <div style="display:flex;gap:10px;">
+        <div class="ai-provider-btn" id="provider-btn-openai" onclick="selectProvider('openai')" style="flex:1;padding:12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center;transition:all 0.15s;">
+          <div style="font-size:20px;margin-bottom:4px;">🤖</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);">ChatGPT</div>
+          <div style="font-size:10.5px;color:var(--text3);">OpenAI · 유료</div>
+        </div>
+        <div class="ai-provider-btn" id="provider-btn-gemini" onclick="selectProvider('gemini')" style="flex:1;padding:12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center;transition:all 0.15s;">
+          <div style="font-size:20px;margin-bottom:4px;">✨</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);">Gemini</div>
+          <div style="font-size:10.5px;color:var(--text3);">Google · 무료 한도</div>
+        </div>
       </div>
     </div>
-    <div style="background:var(--accent-light);border-radius:8px;padding:12px 14px;margin-bottom:4px;">
-      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;">🤖 연결된 AI 기능</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.8;">
-        📄 문서 요약 — PDF·이미지 파일 내용을 직접 읽어 요약<br>
-        ⚖️ 핵심 쟁점 추출 — 법률 쟁점 및 관련 법령 분석<br>
-        📊 타임라인 생성 — 날짜·사건 자동 정리
+
+    <!-- OpenAI 키 -->
+    <div class="modal-field" id="field-openai">
+      <label>OpenAI API 키 (sk-...)</label>
+      <input type="password" id="settings-openai-key" placeholder="sk-...">
+      <div style="font-size:11px;color:var(--text3);margin-top:5px;">발급: <strong>platform.openai.com</strong> → API keys</div>
+    </div>
+
+    <!-- Gemini 키 -->
+    <div class="modal-field" id="field-gemini" style="display:none;">
+      <label>Gemini API 키 (AIzaSy...)</label>
+      <input type="password" id="settings-gemini-key" placeholder="AIzaSy...">
+      <div style="font-size:11px;color:var(--text3);margin-top:5px;">발급: <strong>aistudio.google.com</strong> → Get API Key (무료)</div>
+    </div>
+
+    <div style="background:var(--accent-light);border-radius:8px;padding:11px 14px;margin-bottom:4px;">
+      <div style="font-size:11.5px;color:var(--text2);line-height:1.8;">
+        📄 문서 요약 &nbsp;⚖️ 핵심 쟁점 추출 &nbsp;📊 타임라인 생성<br>
+        <span style="color:var(--text3);font-size:11px;">PDF·이미지는 내용 직접 분석 / Word·HWP는 파일명 기반 분석</span>
       </div>
     </div>
-    <div id="settings-status" style="font-size:12px;margin-top:10px;min-height:18px;"></div>
+
+    <div id="settings-status" style="font-size:12px;margin-top:8px;min-height:18px;"></div>
     <div class="modal-actions">
       <button class="btn-outline" onclick="closeModal('modal-settings')">닫기</button>
       <button class="btn-primary" onclick="saveSettings()">저장</button>
@@ -1721,11 +1745,14 @@ function doSearch(query) {
 }
 
 // ═══════════ GEMINI AI ═══════════
-const GEMINI_MODEL = 'gemini-1.5-flash-latest';
+// ═══════════ AI 설정 ═══════════
+const GEMINI_MODEL  = 'gemini-1.5-flash-latest';
+const OPENAI_MODEL  = 'gpt-4o-mini';
 
-function getApiKey() {
-  return localStorage.getItem('gemini_api_key') || '';
-}
+function getProvider()  { return localStorage.getItem('ai_provider') || 'openai'; }
+function getOpenAIKey() { return localStorage.getItem('openai_api_key') || ''; }
+function getGeminiKey() { return localStorage.getItem('gemini_api_key') || ''; }
+function getActiveKey() { return getProvider() === 'openai' ? getOpenAIKey() : getGeminiKey(); }
 
 const AI_PROMPTS = {
   summary: `당신은 법률 문서 전문 분석가입니다. 아래 문서를 한국어로 간결하게 요약해 주세요.
@@ -1735,10 +1762,8 @@ const AI_PROMPTS = {
 • 핵심 내용 (3~5줄):
 • 주요 날짜/기한:
 • 특이사항:`,
-
   extract: `당신은 법률 전문가입니다. 아래 문서에서 핵심 법률 쟁점을 한국어로 추출해 주세요.
 번호를 붙여 쟁점별로 정리하고, 각 쟁점에 대해 관련 법령과 검토 포인트를 간략히 적어주세요.`,
-
   timeline: `당신은 법률 사건 정리 전문가입니다. 아래 문서에서 날짜와 사건을 추출하여 시간 순서대로 타임라인을 한국어로 작성해 주세요.
 형식: 📅 YYYY.MM.DD — 사건 내용
 날짜가 명시되지 않은 경우 문맥에서 유추하여 작성하세요.`,
@@ -1746,16 +1771,10 @@ const AI_PROMPTS = {
 
 function getMimeType(file) {
   const ext = file.name.split('.').pop().toLowerCase();
-  const map = {
-    pdf: 'application/pdf',
-    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-    gif: 'image/gif', webp: 'image/webp',
-    txt: 'text/plain', md: 'text/plain',
-    doc: 'application/msword',
-    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  };
-  return map[ext] || 'text/plain';
+  const map = { pdf:'application/pdf', png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', gif:'image/gif', webp:'image/webp', txt:'text/plain', md:'text/plain' };
+  return map[ext] || 'application/octet-stream';
 }
+const DIRECT_READ_MIMES = ['application/pdf','image/png','image/jpeg','image/gif','image/webp','text/plain'];
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -1766,44 +1785,64 @@ function fileToBase64(file) {
   });
 }
 
-async function callGemini(prompt, file) {
-  const key = getApiKey();
+// ── Gemini 호출 ──
+async function callGemini(prompt, fileItem) {
+  const key = getGeminiKey();
   if (!key) throw new Error('API_KEY_MISSING');
-
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
-
   let parts = [];
-
-  if (file && file.realFile) {
-    const realFile = file.realFile;
-    const mime = getMimeType(realFile);
-    // PDF·이미지·텍스트: 인라인 base64 전송
-    if (['application/pdf','image/png','image/jpeg','image/gif','image/webp','text/plain'].includes(mime)) {
-      const b64 = await fileToBase64(realFile);
+  if (fileItem?.realFile) {
+    const mime = getMimeType(fileItem.realFile);
+    if (DIRECT_READ_MIMES.includes(mime)) {
+      const b64 = await fileToBase64(fileItem.realFile);
       parts.push({ inline_data: { mime_type: mime, data: b64 } });
       parts.push({ text: prompt });
     } else {
-      // Word/HWP 등 직접 읽기 불가 — 파일명만 전달
-      parts.push({ text: `파일명: ${file.name}\n파일 유형: ${file.type.toUpperCase()}\n\n${prompt}\n\n(참고: 이 파일 형식은 직접 읽을 수 없습니다. 파일명과 유형 기반으로 일반적인 법률 문서 분석을 제공합니다.)` });
+      parts.push({ text: `파일명: ${fileItem.name}\n유형: ${fileItem.type.toUpperCase()}\n\n${prompt}\n\n(이 파일 형식은 직접 읽을 수 없어 파일명 기반으로 분석합니다.)` });
     }
   } else {
-    // 실제 파일 없음 — 파일 메타정보만 전달
-    parts.push({ text: `파일명: ${file ? file.name : '(선택된 파일 없음)'}\n\n${prompt}` });
+    parts.push({ text: `파일명: ${fileItem?.name || '없음'}\n\n${prompt}` });
   }
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts }] }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `HTTP ${res.status}`);
-  }
-
+  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ contents:[{ parts }] }) });
+  if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '결과를 가져올 수 없습니다.';
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '결과 없음';
+}
+
+// ── OpenAI 호출 ──
+async function callOpenAI(prompt, fileItem) {
+  const key = getOpenAIKey();
+  if (!key) throw new Error('API_KEY_MISSING');
+  let messages = [];
+  if (fileItem?.realFile) {
+    const mime = getMimeType(fileItem.realFile);
+    if (['image/png','image/jpeg','image/gif','image/webp'].includes(mime)) {
+      // 이미지: vision
+      const b64 = await fileToBase64(fileItem.realFile);
+      messages.push({ role:'user', content: [
+        { type:'image_url', image_url:{ url: `data:${mime};base64,${b64}` } },
+        { type:'text', text: prompt }
+      ]});
+    } else if (mime === 'application/pdf' || mime === 'text/plain') {
+      // PDF/텍스트: base64로 읽어 텍스트로 전달 (OpenAI는 PDF 직접 지원 안 함 → 내용 추출 안내)
+      messages.push({ role:'system', content: '당신은 법률 문서 전문 분석가입니다.' });
+      messages.push({ role:'user', content: `파일명: ${fileItem.name}\n유형: PDF\n\n${prompt}\n\n(PDF 원문을 직접 파싱할 수 없어 파일명 기반으로 분석합니다. 실제 내용 분석을 위해서는 텍스트를 붙여넣기 해 주세요.)` });
+    } else {
+      messages.push({ role:'system', content: '당신은 법률 문서 전문 분석가입니다.' });
+      messages.push({ role:'user', content: `파일명: ${fileItem.name}\n유형: ${fileItem.type.toUpperCase()}\n\n${prompt}` });
+    }
+  } else {
+    messages.push({ role:'system', content: '당신은 법률 문서 전문 분석가입니다.' });
+    messages.push({ role:'user', content: `파일명: ${fileItem?.name || '없음'}\n\n${prompt}` });
+  }
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${key}` },
+    body: JSON.stringify({ model: OPENAI_MODEL, messages, max_tokens: 1500 }),
+  });
+  if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '결과 없음';
 }
 
 function renderAIResult(text) {
@@ -1815,59 +1854,75 @@ function renderAIResult(text) {
 }
 
 async function openAI(type) {
+  const provider = getProvider();
+  const providerName = provider === 'openai' ? 'ChatGPT (OpenAI)' : 'Gemini (Google)';
   const titles = { summary: '📄 문서 요약', extract: '⚖️ 핵심 쟁점 추출', timeline: '📊 타임라인 생성' };
   document.getElementById('ai-modal-title').textContent = titles[type];
-  document.getElementById('ai-result').innerHTML = `<div class="ai-loading"><div class="spinner"></div> Gemini AI가 분석 중입니다...</div>`;
+  document.getElementById('ai-result').innerHTML = `<div class="ai-loading"><div class="spinner"></div> ${providerName}가 분석 중입니다...</div>`;
   openModal('modal-ai');
 
-  const key = getApiKey();
+  const key = getActiveKey();
   if (!key) {
     document.getElementById('ai-result').innerHTML = `
-      <div style="color:var(--danger);font-size:13px;margin-bottom:12px;">⚠️ API 키가 설정되지 않았습니다.</div>
-      <div style="font-size:12.5px;color:var(--text2);margin-bottom:12px;">오른쪽 상단 <strong>⚙️ 설정</strong>에서 Gemini API 키를 입력해 주세요.</div>
-      <input type="text" id="inline-key-input" placeholder="AIza..." style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
-      <button onclick="saveInlineKey('${type}')" style="margin-top:10px;width:100%;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">저장 후 분석 시작</button>
-    `;
+      <div style="color:var(--danger);font-size:13px;margin-bottom:10px;">⚠️ API 키가 설정되지 않았습니다.</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">⚙️ 설정에서 API 키를 입력해 주세요.</div>
+      <button onclick="closeModal('modal-ai');openSettings();" style="width:100%;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">⚙️ 설정 열기</button>`;
     return;
   }
 
-  // 선택된 파일 찾기
   const files = getDisplayFiles();
   const selectedFile = state.selectedFile ? files.find(f => f.id === state.selectedFile) : null;
 
   try {
-    const result = await callGemini(AI_PROMPTS[type], selectedFile);
+    const result = provider === 'openai'
+      ? await callOpenAI(AI_PROMPTS[type], selectedFile)
+      : await callGemini(AI_PROMPTS[type], selectedFile);
     document.getElementById('ai-result').innerHTML = renderAIResult(result);
   } catch (err) {
     document.getElementById('ai-result').innerHTML = `<div style="color:var(--danger);font-size:13px;">❌ 오류: ${err.message}</div>`;
   }
 }
 
+// ── 설정 모달 ──
+function selectProvider(p) {
+  localStorage.setItem('ai_provider', p);
+  document.getElementById('field-openai').style.display = p === 'openai' ? 'block' : 'none';
+  document.getElementById('field-gemini').style.display = p === 'gemini' ? 'block' : 'none';
+  document.getElementById('provider-btn-openai').style.borderColor = p === 'openai' ? 'var(--accent)' : 'var(--border)';
+  document.getElementById('provider-btn-openai').style.background  = p === 'openai' ? 'var(--accent-light)' : '';
+  document.getElementById('provider-btn-gemini').style.borderColor = p === 'gemini' ? 'var(--accent)' : 'var(--border)';
+  document.getElementById('provider-btn-gemini').style.background  = p === 'gemini' ? 'var(--accent-light)' : '';
+  updateSettingsStatus();
+}
+
+function updateSettingsStatus() {
+  const p = getProvider();
+  const key = getActiveKey();
+  const name = p === 'openai' ? 'OpenAI' : 'Gemini';
+  document.getElementById('settings-status').innerHTML = key
+    ? `<span style="color:var(--success)">✅ ${name} API 키 연결됨</span>`
+    : `<span style="color:var(--text3)">${name} API 키를 입력해 주세요.</span>`;
+}
+
 function openSettings() {
-  const key = getApiKey();
-  document.getElementById('settings-api-key').value = key;
-  const st = document.getElementById('settings-status');
-  st.innerHTML = key
-    ? `<span style="color:var(--success)">✅ API 키 연결됨</span>`
-    : `<span style="color:var(--text3)">API 키가 설정되지 않았습니다.</span>`;
+  const p = getProvider();
+  document.getElementById('settings-openai-key').value = getOpenAIKey();
+  document.getElementById('settings-gemini-key').value = getGeminiKey();
+  selectProvider(p);
   openModal('modal-settings');
 }
 
 function saveSettings() {
-  const val = document.getElementById('settings-api-key').value.trim();
-  if (!val) { showToast('API 키를 입력하세요'); return; }
-  localStorage.setItem('gemini_api_key', val);
-  document.getElementById('settings-status').innerHTML = `<span style="color:var(--success)">✅ 저장되었습니다</span>`;
-  showToast('✅ Gemini API 키가 저장되었습니다');
-  setTimeout(() => closeModal('modal-settings'), 800);
-}
-
-function saveInlineKey(type) {
-  const val = document.getElementById('inline-key-input')?.value?.trim();
-  if (!val) return;
-  localStorage.setItem('gemini_api_key', val);
-  showToast('✅ API 키가 저장되었습니다');
-  openAI(type);
+  const p = getProvider();
+  const openaiVal = document.getElementById('settings-openai-key').value.trim();
+  const geminiVal = document.getElementById('settings-gemini-key').value.trim();
+  if (openaiVal) localStorage.setItem('openai_api_key', openaiVal);
+  if (geminiVal) localStorage.setItem('gemini_api_key', geminiVal);
+  const activeKey = p === 'openai' ? openaiVal || getOpenAIKey() : geminiVal || getGeminiKey();
+  if (!activeKey) { showToast('API 키를 입력하세요'); return; }
+  updateSettingsStatus();
+  showToast('✅ 설정이 저장되었습니다');
+  setTimeout(() => closeModal('modal-settings'), 700);
 }
 
 // ═══════════ DELETE / CONFIRM ═══════════
