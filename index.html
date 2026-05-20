@@ -836,6 +836,19 @@
     });
   };
 
+  // ── Gemini API 키 (Firestore 공유 저장) ──
+  window.saveGeminiKey = async function(key) {
+    const ref = doc(db, 'config', 'gemini');
+    await setDoc(ref, { apiKey: key, updatedAt: new Date().toISOString() });
+  };
+  window.loadGeminiKey = async function() {
+    try {
+      const ref = doc(db, 'config', 'gemini');
+      const snap = await getDoc(ref);
+      return snap.exists() ? snap.data().apiKey : null;
+    } catch(e) { return null; }
+  };
+
   // ── 관리자: 건의 목록 ──
   window.getSuggestions = async function() {
     const snap = await getDocs(collection(db, 'suggestions'));
@@ -962,7 +975,7 @@
   <div class="mobile-header">
     <div class="mobile-logo">lawoneAI</div>
     <div class="mobile-header-actions">
-      <button class="hamburger-btn" onclick="openSettings()" title="설정">⚙️</button>
+      <button class="hamburger-btn" id="settings-btn-mobile" onclick="openSettings()" title="설정" style="display:none;">⚙️</button>
       <button class="hamburger-btn" onclick="toggleTheme()" id="theme-btn-mobile">🌙</button>
       <button class="hamburger-btn" onclick="toggleSidebar()" title="메뉴">☰</button>
     </div>
@@ -977,7 +990,7 @@
       <div class="sidebar-top-row">
         <div class="sidebar-logo">lawoneAI</div>
         <div class="sidebar-top-actions">
-          <button class="theme-btn" onclick="openSettings()" title="AI 설정">⚙️</button>
+          <button class="theme-btn" id="settings-btn" onclick="openSettings()" title="AI 설정">⚙️</button>
           <button class="theme-btn" onclick="toggleTheme()" title="테마 변경" id="theme-btn">🌙</button>
         </div>
       </div>
@@ -1131,6 +1144,24 @@
       <div class="admin-tabs">
         <button class="admin-tab active" id="tab-members" onclick="switchAdminTab('members')">👥 회원 목록</button>
         <button class="admin-tab" id="tab-suggestions" onclick="switchAdminTab('suggestions')">💬 건의 목록</button>
+        <button class="admin-tab" id="tab-ai" onclick="switchAdminTab('ai')">🤖 AI 설정</button>
+      </div>
+      <!-- AI 설정 패널 -->
+      <div id="admin-panel-ai" style="display:none;max-width:480px;">
+        <div style="background:var(--accent-light);border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+          <div style="font-size:26px;">✨</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);">Gemini 2.5 Flash</div>
+            <div style="font-size:11.5px;color:var(--text3);margin-top:2px;">여기서 저장한 키는 모든 회원이 공유해서 사용합니다</div>
+          </div>
+        </div>
+        <div class="modal-field">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;">Gemini API 키</label>
+          <input type="password" id="admin-gemini-key" placeholder="AIzaSy..." style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;background:var(--bg);color:var(--text);outline:none;font-family:inherit;">
+          <div style="font-size:11px;color:var(--text3);margin-top:6px;">발급: <strong>aistudio.google.com</strong> → Get API Key → Create API Key (무료)</div>
+        </div>
+        <div id="admin-ai-status" style="font-size:12px;min-height:18px;margin-bottom:12px;"></div>
+        <button class="btn-primary" onclick="saveAdminGeminiKey()" style="width:100%;justify-content:center;">저장</button>
       </div>
       <!-- 회원 목록 패널 -->
       <div id="admin-panel-members">
@@ -1614,6 +1645,10 @@ async function initApp() {
 
   document.getElementById('admin-btn-wrap').style.display = info.isAdmin ? 'block' : 'none';
   document.getElementById('mypage-btn-wrap').style.display = info.isAdmin ? 'none' : 'block';
+  const sBtn = document.getElementById('settings-btn');
+  const sBtnM = document.getElementById('settings-btn-mobile');
+  if (sBtn)  sBtn.style.display  = info.isAdmin ? '' : 'none';
+  if (sBtnM) sBtnM.style.display = info.isAdmin ? '' : 'none';
 
   const d = new Date();
   document.getElementById('today-date-label').textContent =
@@ -1634,6 +1669,12 @@ async function initApp() {
       if (window.saveUserData) window.saveUserData(state.user);
     }
     await restoreRealFiles();
+
+    // Firestore에서 Gemini 키 로드 (관리자가 설정한 공유 키)
+    if (window.loadGeminiKey) {
+      const sharedKey = await window.loadGeminiKey();
+      if (sharedKey) localStorage.setItem('gemini_api_key', sharedKey);
+    }
   }
 
   // 로딩 오버레이 제거
@@ -3069,12 +3110,43 @@ function escapeHtml(str) {
 
 // ═══════════ 관리자 탭 ═══════════
 function switchAdminTab(tab) {
-  document.getElementById('admin-panel-members').style.display    = tab === 'members'     ? 'block' : 'none';
+  document.getElementById('admin-panel-members').style.display     = tab === 'members'     ? 'block' : 'none';
   document.getElementById('admin-panel-suggestions').style.display = tab === 'suggestions' ? 'block' : 'none';
+  document.getElementById('admin-panel-ai').style.display          = tab === 'ai'          ? 'block' : 'none';
   document.getElementById('tab-members').classList.toggle('active',     tab === 'members');
   document.getElementById('tab-suggestions').classList.toggle('active', tab === 'suggestions');
+  document.getElementById('tab-ai').classList.toggle('active',          tab === 'ai');
   if (tab === 'suggestions') loadAdminSuggestions();
+  else if (tab === 'ai') loadAdminAIStatus();
   else loadAdminUsers();
+}
+
+async function loadAdminAIStatus() {
+  const statusEl = document.getElementById('admin-ai-status');
+  const keyInput = document.getElementById('admin-gemini-key');
+  statusEl.innerHTML = '<span style="color:var(--text3);">불러오는 중...</span>';
+  const key = await window.loadGeminiKey();
+  if (key) {
+    keyInput.value = key;
+    statusEl.innerHTML = '<span style="color:var(--success);">✅ API 키가 설정되어 있습니다</span>';
+  } else {
+    keyInput.value = '';
+    statusEl.innerHTML = '<span style="color:var(--text3);">API 키가 설정되지 않았습니다</span>';
+  }
+}
+
+async function saveAdminGeminiKey() {
+  const key = document.getElementById('admin-gemini-key').value.trim();
+  const statusEl = document.getElementById('admin-ai-status');
+  if (!key) { statusEl.innerHTML = '<span style="color:var(--danger);">API 키를 입력하세요</span>'; return; }
+  statusEl.innerHTML = '<span style="color:var(--text3);">저장 중...</span>';
+  try {
+    await window.saveGeminiKey(key);
+    localStorage.setItem('gemini_api_key', key);
+    statusEl.innerHTML = '<span style="color:var(--success);">✅ 저장됐습니다. 모든 회원이 이 키를 사용합니다</span>';
+  } catch(e) {
+    statusEl.innerHTML = '<span style="color:var(--danger);">저장 실패: ' + e.message + '</span>';
+  }
 }
 
 async function loadAdminSuggestions() {
