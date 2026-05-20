@@ -213,30 +213,6 @@
     pointer-events: none;
   }
 
-  /* FILE UPLOAD DROP ZONE */
-  .upload-dropzone {
-    border: 1.5px dashed var(--border); border-radius: var(--radius-sm);
-    padding: 11px 16px; margin: 4px 0 12px;
-    transition: all 0.2s; cursor: pointer; background: var(--surface2);
-    color: var(--text3); display: flex; align-items: center; gap: 10px;
-  }
-  .upload-dropzone:hover, .upload-dropzone.dragover {
-    border-color: var(--accent); background: var(--accent-light); color: var(--accent);
-  }
-  .upload-dropzone .dz-icon { font-size: 20px; flex-shrink: 0; }
-  .upload-dropzone .dz-text { font-size: 12.5px; font-weight: 600; }
-  .upload-dropzone .dz-sub { font-size: 11px; margin-top: 2px; }
-  #file-area-drop.ext-dragover .upload-dropzone {
-    border-color: var(--accent); background: var(--accent-light);
-  }
-  .ext-dragover-overlay {
-    position: absolute; inset: 0; background: rgba(91,110,140,0.10);
-    border: 3px dashed var(--accent); border-radius: var(--radius);
-    z-index: 10; display: flex; align-items: center; justify-content: center;
-    pointer-events: none; opacity: 0; transition: opacity 0.15s;
-  }
-  .ext-dragover-overlay.show { opacity: 1; }
-  .ext-dragover-overlay-text { font-size: 18px; font-weight: 800; color: var(--accent); background: var(--surface); padding: 16px 28px; border-radius: 12px; box-shadow: var(--shadow2); }
   .file-area-wrap { position: relative; flex: 1; overflow: hidden; display: flex; flex-direction: column; }
   .drag-handle {
     color: var(--text3); font-size: 13px; cursor: grab; padding: 0 6px 0 0;
@@ -1064,9 +1040,6 @@
         </div>
       </div>
       <div class="file-area-wrap">
-        <div class="ext-dragover-overlay" id="ext-overlay">
-          <div class="ext-dragover-overlay-text">📂 여기에 파일을 놓으세요</div>
-        </div>
         <div class="file-area" id="file-area-drop">
           <div class="file-list-header">
             <div class="col-drag"></div>
@@ -1076,14 +1049,6 @@
             <div class="col-status">상태</div>
             <div class="col-date">날짜</div>
             <div class="col-star">★</div>
-          </div>
-          <!-- Upload drop zone -->
-          <div class="upload-dropzone" id="upload-dropzone" onclick="document.getElementById('file-upload-input').click()">
-            <div class="dz-icon">☁️</div>
-            <div>
-              <div class="dz-text">파일 드래그 또는 클릭하여 업로드</div>
-              <div class="dz-sub">PDF · Word · HWP · Excel · 이미지 등</div>
-            </div>
           </div>
           <input type="file" id="file-upload-input" style="display:none" onchange="handleFileInputChange(this)">
           <div id="file-list"></div>
@@ -1639,7 +1604,6 @@ function openProject(id) {
   updateBreadcrumb();
   renderFiles();
   clearPanel();
-  setTimeout(initUploadZone, 0);
 }
 
 function openFolder(fileId) {
@@ -2056,30 +2020,6 @@ async function importDroppedItems(dataTransfer) {
   if (files.length) importRealFiles(files);
 }
 
-let _uploadZoneReady = false;
-function initUploadZone() {
-  if (_uploadZoneReady) return;
-  _uploadZoneReady = true;
-  const dz = document.getElementById('upload-dropzone');
-  if (!dz) return;
-
-  // 드롭존 박스에서만 드롭 처리 — 전체 영역 리스너 없음
-  dz.addEventListener('dragover', e => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    e.preventDefault();
-    e.stopPropagation();
-    dz.classList.add('dragover');
-  });
-  dz.addEventListener('dragleave', e => {
-    if (!dz.contains(e.relatedTarget)) dz.classList.remove('dragover');
-  });
-  dz.addEventListener('drop', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    dz.classList.remove('dragover');
-    importDroppedItems(e.dataTransfer);
-  });
-}
 
 function writeDisplayFiles(newList) {
   const all = state.files[state.currentProject] || [];
