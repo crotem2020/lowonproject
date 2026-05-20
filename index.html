@@ -563,14 +563,6 @@
   .app-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes dotBounce { 0%,80%,100% { transform:scale(0.5); opacity:0.3; } 40% { transform:scale(1); opacity:1; } }
 
-  /* ── SAVE INDICATOR ── */
-  #save-indicator {
-    position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
-    background: var(--success); color: #fff; font-size: 11.5px; font-weight: 700;
-    padding: 5px 14px; border-radius: 20px; z-index: 198;
-    opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap;
-  }
-  #save-indicator.show { opacity: 1; }
 
   /* ── BREADCRUMB BAR ── */
   #breadcrumb-bar {
@@ -594,14 +586,6 @@
   /* ── STEP INPUT MODAL ── */
   .step-modal { width: 360px; }
 
-  /* NOTIFICATION TOAST */
-  .toast {
-    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(60px);
-    background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: 30px;
-    font-size: 13px; font-weight: 600; z-index: 200; transition: transform 0.3s;
-    box-shadow: var(--shadow2); white-space: nowrap;
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); }
 
   /* BREADCRUMB */
   .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text3); margin: 12px 28px 0; flex-shrink: 0; }
@@ -1428,11 +1412,6 @@
   </div>
 </div>
 
-<!-- SAVE INDICATOR -->
-<div id="save-indicator">✓ 저장됨</div>
-
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
 
 <script>
 // ═══════════ INDEXEDDB 파일 저장소 ═══════════
@@ -1855,14 +1834,6 @@ function updateBreadcrumb() {
   bar.classList.toggle('visible', parts.length > 0);
 }
 
-let _saveIndicatorTimer;
-function showSaveIndicator() {
-  const el = document.getElementById('save-indicator');
-  if (!el) return;
-  el.classList.add('show');
-  clearTimeout(_saveIndicatorTimer);
-  _saveIndicatorTimer = setTimeout(() => el.classList.remove('show'), 1800);
-}
 
 // ═══════════ PROJECTS ═══════════
 function countFilesRecursive(list) {
@@ -3149,15 +3120,8 @@ function togglePanel() {
   document.getElementById('right-panel').classList.toggle('panel-open');
 }
 
-// ═══════════ TOAST ═══════════
-let toastTimer;
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
-}
+function showToast() {}
+function showSaveIndicator() {}
 
 // ═══════════ 자동 로그인 (페이지 로드 시) ═══════════
 (function restoreSession() {
