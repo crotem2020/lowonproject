@@ -1391,43 +1391,12 @@
 <script>
 // ═══════════ STATE ═══════════
 let state = {
-  user: 'lowon',
+  user: null,
   theme: 'light',
-  projects: [
-    { id: 'p1', name: '황석현 변호사', color: '#5B6E8C', memo: '손해배상 소송 관련 자료' },
-    { id: 'p2', name: '제출된 서면', color: '#8C5B5B', memo: '각종 제출 서면 모음' },
-    { id: 'p3', name: '신영규 변호사 지시사항', color: '#5B8C6A', memo: '지시사항 및 메모' },
-  ],
-  files: {
-    'p1': [
-      { id: 'f1', type: 'folder', name: '소장 및 준비서면', status: 'review', date: '2026-05-15', starred: false, checked: false, progress: [
-        {text:'초안 작성', done:true}, {text:'검토 요청', done:true}, {text:'수정 완료', done:false}, {text:'제출', done:false}
-      ]},
-      { id: 'f2', type: 'pdf', name: '손해배상 계산서.pdf', status: 'done', date: '2026-05-12', starred: true, checked: false, progress: [
-        {text:'자료 수집', done:true}, {text:'계산 완료', done:true}
-      ]},
-      { id: 'f3', type: 'hwp', name: '증거자료 목록.hwp', status: 'progress', date: '2026-05-18', starred: false, checked: false, progress: [
-        {text:'목록 작성 중', done:false}
-      ]},
-    ],
-    'p2': [
-      { id: 'f4', type: 'folder', name: '2026년 1분기', status: 'done', date: '2026-04-01', starred: false, checked: false, progress: [{text:'정리 완료', done:true}] },
-      { id: 'f5', type: 'word', name: '답변서_최종.docx', status: 'review', date: '2026-05-20', starred: true, checked: false, progress: [
-        {text:'초안', done:true}, {text:'1차 검토', done:true}, {text:'최종 확인', done:false}
-      ]},
-    ],
-    'p3': [
-      { id: 'f6', type: 'pdf', name: '지시사항_05월.pdf', status: 'wait', date: '2026-05-19', starred: false, checked: false, progress: [
-        {text:'수령', done:true}, {text:'검토 중', done:false}
-      ]},
-    ],
-  },
+  projects: [],
+  files: {},
   todos: [],
-  events: [
-    { id: 'e1', title: '변론기일', date: '2026-05-22', time: '10:00', type: 'court' },
-    { id: 'e2', title: '의뢰인 면담', date: '2026-05-28', time: '14:00', type: 'normal' },
-    { id: 'e3', title: '서면 제출 마감', date: '2026-05-31', time: '', type: 'urgent' },
-  ],
+  events: [],
   userInfo: null,
   currentView: 'today',
   currentProject: null,
@@ -1539,7 +1508,16 @@ async function initApp() {
   state.calMonth = d.getMonth();
 
   // 유저별 데이터 불러오기
-  if (window.loadUserData) await window.loadUserData(state.user);
+  if (window.loadUserData) {
+    await window.loadUserData(state.user);
+    // 신규 유저 — 프로젝트가 없으면 기본 프로젝트 생성
+    if (!state.projects.length) {
+      const defaultId = 'p' + Date.now();
+      state.projects = [{ id: defaultId, name: '새 프로젝트', color: '#5B6E8C', memo: '' }];
+      state.files[defaultId] = [];
+      if (window.saveUserData) window.saveUserData(state.user);
+    }
+  }
 
   renderProjects();
   renderTodos();
