@@ -1085,7 +1085,7 @@
               <div class="dz-sub">PDF · Word · HWP · Excel · 이미지 등</div>
             </div>
           </div>
-          <input type="file" id="file-upload-input" multiple style="display:none" onchange="handleFileInputChange(this)">
+          <input type="file" id="file-upload-input" style="display:none" onchange="handleFileInputChange(this)">
           <div id="file-list"></div>
         </div>
       </div>
@@ -1923,7 +1923,7 @@ function importRealFiles(fileList) {
   if (!state.currentProject) { showToast('먼저 프로젝트를 선택하세요'); return; }
   const today = new Date().toISOString().slice(0, 10);
   const added = [];
-  Array.from(fileList).forEach(file => {
+  Array.from(fileList).slice(0, 1).forEach(file => {
     const type = getFileType(file.name);
     const f = {
       id: 'f' + Date.now() + Math.random().toString(36).slice(2),
