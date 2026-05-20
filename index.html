@@ -2032,28 +2032,34 @@ async function entryToFileItem(entry) {
 async function importDroppedItems(dataTransfer) {
   if (!state.currentProject) { showToast('먼저 프로젝트를 선택하세요'); return; }
 
-  // webkitGetAsEntry 지원 시 사용 (폴더 감지 가능)
   const items = Array.from(dataTransfer.items || []);
   if (items.length && items[0].webkitGetAsEntry) {
-    const entry = items[0].webkitGetAsEntry(); // 첫 번째 1개만
-    if (!entry) return;
+    const entries = items.map(i => i.webkitGetAsEntry()).filter(Boolean);
+    if (!entries.length) return;
     showToast('📥 업로드 중...');
     try {
-      const item = await entryToFileItem(entry);
-      if (state.currentFolder) {
-        const allFiles = state.files[state.currentProject];
-        const folder = allFiles.find(x => x.id === state.currentFolder);
-        if (folder) { if (!folder.children) folder.children = []; folder.children.push(item); }
-      } else {
-        if (!state.files[state.currentProject]) state.files[state.currentProject] = [];
-        state.files[state.currentProject].push(item);
-      }
+      const results = await Promise.all(entries.map(e => entryToFileItem(e)));
+      const target = state.currentFolder
+        ? (() => {
+            const allFiles = state.files[state.currentProject];
+            const folder = allFiles.find(x => x.id === state.currentFolder);
+            if (folder) { if (!folder.children) folder.children = []; return folder.children; }
+            return null;
+          })()
+        : (() => {
+            if (!state.files[state.currentProject]) state.files[state.currentProject] = [];
+            return state.files[state.currentProject];
+          })();
+      if (!target) return;
+      results.forEach(item => target.push(item));
       renderFiles();
       renderProjects();
-      const label = item.type === 'folder'
-        ? `📁 "${item.name}" 폴더 (${item.children.length}개 파일)`
-        : `✅ "${item.name}"`;
-      showToast(`${label} 추가됐습니다`);
+      const folderCount = results.filter(r => r.type === 'folder').length;
+      const fileCount   = results.filter(r => r.type !== 'folder').length;
+      const parts = [];
+      if (folderCount) parts.push(`폴더 ${folderCount}개`);
+      if (fileCount)   parts.push(`파일 ${fileCount}개`);
+      showToast(`✅ ${parts.join(', ')} 추가됐습니다`);
       if (window.saveUserData) window.saveUserData(state.user);
     } catch(e) {
       showToast('업로드 중 오류가 발생했습니다');
@@ -2061,9 +2067,26 @@ async function importDroppedItems(dataTransfer) {
     return;
   }
 
-  // fallback: files만 사용
-  const files = dataTransfer.files;
-  if (files.length) importRealFiles(files);
+  // fallback
+  const files = Array.from(dataTransfer.files);
+  if (!files.length) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const target = state.currentFolder
+    ? (() => { const f = (state.files[state.currentProject]||[]).find(x=>x.id===state.currentFolder); return f?.children; })()
+    : (state.files[state.currentProject] = state.files[state.currentProject] || [], state.files[state.currentProject]);
+  if (!target) return;
+  files.forEach(file => {
+    target.push({
+      id: 'f'+Date.now()+Math.random().toString(36).slice(2),
+      type: getFileType(file.name), name: file.name,
+      status: 'draft', date: today, starred: false, checked: false,
+      progress: [{text:'업로드 완료',done:true},{text:'검토 대기',done:false}],
+      realFile: file, fileSize: file.size,
+    });
+  });
+  renderFiles(); renderProjects();
+  showToast(`✅ 파일 ${files.length}개 추가됐습니다`);
+  if (window.saveUserData) window.saveUserData(state.user);
 }
 
 
