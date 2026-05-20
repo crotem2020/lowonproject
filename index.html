@@ -1358,6 +1358,75 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ═══════════ INDEXEDDB 파일 저장소 ═══════════
+let _fileDB = null;
+function openFileDB() {
+  return new Promise((resolve, reject) => {
+    if (_fileDB) { resolve(_fileDB); return; }
+    const req = indexedDB.open('lawoneFileStore', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('files', { keyPath: 'id' });
+    req.onsuccess = e => { _fileDB = e.target.result; resolve(_fileDB); };
+    req.onerror = () => reject(req.error);
+  });
+}
+async function saveFileToIDB(fileId, file) {
+  try {
+    const db = await openFileDB();
+    const buf = await file.arrayBuffer();
+    await new Promise((res, rej) => {
+      const tx = db.transaction('files', 'readwrite');
+      tx.objectStore('files').put({ id: fileId, name: file.name, type: file.type, data: buf });
+      tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+    });
+  } catch(e) { console.warn('IDB save failed', e); }
+}
+async function loadFileFromIDB(fileId) {
+  try {
+    const db = await openFileDB();
+    return await new Promise(resolve => {
+      const req = db.transaction('files','readonly').objectStore('files').get(fileId);
+      req.onsuccess = () => {
+        const r = req.result;
+        resolve(r ? new File([r.data], r.name, { type: r.type }) : null);
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+async function deleteFileFromIDB(fileId) {
+  try {
+    const db = await openFileDB();
+    await new Promise(res => {
+      const tx = db.transaction('files','readwrite');
+      tx.objectStore('files').delete(fileId);
+      tx.oncomplete = res; tx.onerror = res;
+    });
+  } catch(e) {}
+}
+async function deleteFilesFromIDB(idList) {
+  for (const id of idList) await deleteFileFromIDB(id);
+}
+function collectFileIds(list) {
+  const ids = [];
+  (list || []).forEach(f => {
+    if (f.type !== 'folder') ids.push(f.id);
+    if (f.children) ids.push(...collectFileIds(f.children));
+  });
+  return ids;
+}
+async function restoreRealFiles() {
+  const restore = async (list) => {
+    for (const f of list || []) {
+      if (f.type !== 'folder') {
+        const file = await loadFileFromIDB(f.id);
+        if (file) f.realFile = file;
+      }
+      if (f.children) await restore(f.children);
+    }
+  };
+  for (const pid in state.files) await restore(state.files[pid]);
+}
+
 // ═══════════ STATE ═══════════
 let state = {
   user: null,
@@ -1486,6 +1555,8 @@ async function initApp() {
       state.files[defaultId] = [];
       if (window.saveUserData) window.saveUserData(state.user);
     }
+    // IndexedDB에서 파일 바이너리 복원 (새로고침 후에도 파일 내용 유지)
+    await restoreRealFiles();
   }
 
   renderProjects();
@@ -1923,11 +1994,11 @@ function getFileType(filename) {
   return 'file';
 }
 
-function importRealFiles(fileList) {
+async function importRealFiles(fileList) {
   if (!state.currentProject) { showToast('먼저 프로젝트를 선택하세요'); return; }
   const today = new Date().toISOString().slice(0, 10);
   const added = [];
-  Array.from(fileList).slice(0, 1).forEach(file => {
+  for (const file of Array.from(fileList).slice(0, 1)) {
     const type = getFileType(file.name);
     const f = {
       id: 'f' + Date.now() + Math.random().toString(36).slice(2),
@@ -1938,9 +2009,10 @@ function importRealFiles(fileList) {
       starred: false,
       checked: false,
       progress: [{ text: '업로드 완료', done: true }, { text: '검토 대기', done: false }],
-      realFile: file,           // keep reference for preview
+      realFile: file,
       fileSize: file.size,
     };
+    await saveFileToIDB(f.id, file); // IndexedDB에 파일 저장
     if (state.currentFolder) {
       const allFiles = state.files[state.currentProject];
       const folder = allFiles.find(x => x.id === state.currentFolder);
@@ -1950,7 +2022,7 @@ function importRealFiles(fileList) {
       state.files[state.currentProject].push(f);
     }
     added.push(file.name);
-  });
+  }
   renderFiles();
   renderProjects();
   showToast(`✅ ${added.length}개 파일이 추가되었습니다`);
@@ -1981,20 +2053,15 @@ async function entryToFileItem(entry) {
   const today = new Date().toISOString().slice(0, 10);
   if (entry.isFile) {
     const file = await new Promise((res, rej) => entry.file(res, rej));
+    const id = 'f' + Date.now() + Math.random().toString(36).slice(2);
+    await saveFileToIDB(id, file); // IndexedDB에 저장
     return {
-      id: 'f' + Date.now() + Math.random().toString(36).slice(2),
-      type: getFileType(file.name),
-      name: file.name,
-      status: 'draft',
-      date: today,
-      starred: false,
-      checked: false,
+      id, type: getFileType(file.name), name: file.name,
+      status: 'draft', date: today, starred: false, checked: false,
       progress: [{ text: '업로드 완료', done: true }, { text: '검토 대기', done: false }],
-      realFile: file,
-      fileSize: file.size,
+      realFile: file, fileSize: file.size,
     };
   } else {
-    // 폴더
     const entries = await readAllEntries(entry.createReader());
     const children = [];
     for (const child of entries) {
@@ -2003,14 +2070,9 @@ async function entryToFileItem(entry) {
     }
     return {
       id: 'f' + Date.now() + Math.random().toString(36).slice(2),
-      type: 'folder',
-      name: entry.name,
-      status: 'draft',
-      date: today,
-      starred: false,
-      checked: false,
-      progress: [],
-      children,
+      type: 'folder', name: entry.name,
+      status: 'draft', date: today, starred: false, checked: false,
+      progress: [], children,
     };
   }
 }
@@ -2167,6 +2229,7 @@ function deleteSelected() {
     `선택한 <strong>${targets.length}개</strong> 항목을 삭제합니다.<br>이 작업은 되돌릴 수 없습니다.`,
     () => {
       const ids = new Set(targets.map(f => f.id));
+      deleteFilesFromIDB(targets.flatMap(f => collectFileIds([f])));
       writeDisplayFiles(files.filter(f => !ids.has(f.id)));
       if (state.selectedFile && ids.has(state.selectedFile)) clearPanel();
       renderFiles();
@@ -2753,6 +2816,7 @@ function deleteProject(id, e) {
     '프로젝트 삭제',
     `<span class="confirm-name">"${p.name}"</span> 프로젝트와 그 안의 모든 파일이 삭제됩니다.<br>이 작업은 되돌릴 수 없습니다.`,
     () => {
+      deleteFilesFromIDB(collectFileIds(state.files[id]));
       state.projects = state.projects.filter(x => x.id !== id);
       delete state.files[id];
       if (state.currentProject === id) {
@@ -2778,6 +2842,7 @@ function deleteFile(fileId, e) {
     `${label} 삭제`,
     `<span class="confirm-name">"${f.name}"</span> ${label}을 삭제합니다.${extra}<br>이 작업은 되돌릴 수 없습니다.`,
     () => {
+      deleteFilesFromIDB(collectFileIds([f]));
       const newList = list.filter(x => x.id !== fileId);
       writeDisplayFiles(newList);
       if (state.selectedFile === fileId) clearPanel();
