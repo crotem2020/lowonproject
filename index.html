@@ -1958,7 +1958,10 @@ function handleFileInputChange(input) {
   input.value = '';
 }
 
+let _uploadZoneReady = false;
 function initUploadZone() {
+  if (_uploadZoneReady) return; // 중복 등록 방지
+  _uploadZoneReady = true;
   const area = document.getElementById('file-area-drop');
   const overlay = document.getElementById('ext-overlay');
   const dz = document.getElementById('upload-dropzone');
