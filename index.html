@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lowon — 법률 업무 플랫폼</title>
+<style>
+  :root {
+    --bg: #F5F3EF;
+    --bg2: #EDEAE4;
+    --bg3: #E4E0D9;
+    --surface: #FFFFFF;
+    --surface2: #F9F7F4;
+    --border: #DDD9D2;
+    --text: #2C2825;
+    --text2: #6B6560;
+    --text3: #9E9990;
+    --accent: #5B6E8C;
+    --accent2: #7A8FA8;
+    --accent-light: #EEF1F6;
+    --star: #D4A843;
+    --danger: #C25050;
+    --success: #4A8C6A;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+    --shadow2: 0 4px 16px rgba(0,0,0,0.10);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  [data-theme="dark"] {
+    --bg: #1A1C1E;
+    --bg2: #23262A;
+    --bg3: #2C3036;
+    --surface: #2C3036;
+    --surface2: #23262A;
+    --border: #3A3F47;
+    --text: #E8E4DF;
+    --text2: #A09890;
+    --text3: #6B6560;
+    --accent: #7A96B8;
+    --accent2: #92AACC;
+    --accent-light: #1E2635;
+    --star: #D4A843;
+    --danger: #D46060;
+    --success: #5AAA7A;
+    --shadow: 0 1px 4px rgba(0,0,0,0.3);
+    --shadow2: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Pretendard', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); transition: background 0.2s, color 0.2s; min-height: 100vh; }
+
+  /* ───────── LOGIN ───────── */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg);
+  }
+  .login-card {
+    background: var(--surface); border-radius: 20px;
+    box-shadow: var(--shadow2); padding: 52px 48px 44px;
+    width: 400px; text-align: center;
+  }
+  .login-logo { font-size: 38px; font-weight: 800; letter-spacing: -1.5px; color: var(--accent); margin-bottom: 6px; }
+  .login-sub { font-size: 13px; color: var(--text3); margin-bottom: 36px; letter-spacing: 0.3px; }
+  .login-field { margin-bottom: 14px; text-align: left; }
+  .login-field label { font-size: 12px; color: var(--text2); font-weight: 600; display: block; margin-bottom: 6px; letter-spacing: 0.4px; }
+  .login-field input {
+    width: 100%; padding: 12px 16px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 14px; background: var(--bg);
+    color: var(--text); outline: none; transition: border-color 0.2s;
+  }
+  .login-field input:focus { border-color: var(--accent); }
+  .login-btn {
+    width: 100%; margin-top: 24px; padding: 13px; background: var(--accent);
+    color: #fff; border: none; border-radius: var(--radius-sm); font-size: 15px;
+    font-weight: 700; cursor: pointer; transition: background 0.2s;
+  }
+  .login-btn:hover { background: var(--accent2); }
+  .login-err { font-size: 12px; color: var(--danger); margin-top: 10px; min-height: 18px; }
+
+  /* ───────── MAIN LAYOUT ───────── */
+  #app { display: none; height: 100vh; flex-direction: row; overflow: hidden; }
+  #app.visible { display: flex; }
+
+  /* ── LEFT SIDEBAR ── */
+  #sidebar {
+    width: 280px; min-width: 220px; background: var(--surface);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    height: 100vh; transition: background 0.2s;
+  }
+  .sidebar-header { padding: 22px 20px 16px; border-bottom: 1px solid var(--border); }
+  .user-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .user-info { display: flex; align-items: center; gap: 10px; }
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #fff;
+  }
+  .user-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .user-role { font-size: 11px; color: var(--text3); }
+  .theme-btn {
+    background: var(--bg2); border: none; cursor: pointer; padding: 7px;
+    border-radius: 8px; color: var(--text2); font-size: 16px; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .theme-btn:hover { background: var(--border); }
+  .search-box {
+    position: relative; width: 100%;
+  }
+  .search-box input {
+    width: 100%; padding: 9px 12px 9px 34px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 13px; background: var(--bg);
+    color: var(--text); outline: none; transition: border-color 0.2s;
+  }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 13px; pointer-events: none; }
+
+  /* NAV ITEMS */
+  .sidebar-nav { padding: 14px 12px 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 13.5px;
+    color: var(--text2); font-weight: 500; transition: all 0.15s; position: relative;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--bg2); color: var(--text); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 700; }
+  .nav-icon { width: 20px; text-align: center; font-size: 15px; }
+  .nav-badge {
+    margin-left: auto; background: var(--accent); color: #fff;
+    font-size: 10px; font-weight: 700; border-radius: 10px;
+    padding: 2px 7px; min-width: 20px; text-align: center;
+  }
+  .nav-badge.star { background: var(--star); }
+
+  /* PROJECTS */
+  .section-label {
+    font-size: 10.5px; font-weight: 700; color: var(--text3); letter-spacing: 1px;
+    padding: 10px 22px 6px; text-transform: uppercase;
+  }
+  .project-list { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
+  .project-item {
+    display: flex; align-items: center; gap: 8px; padding: 9px 10px;
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 13px;
+    color: var(--text2); font-weight: 500; transition: all 0.15s; margin-bottom: 2px;
+  }
+  .project-item:hover { background: var(--bg2); color: var(--text); }
+  .project-item.active { background: var(--accent-light); color: var(--accent); font-weight: 700; }
+  .project-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .project-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .project-count { font-size: 11px; color: var(--text3); }
+  .add-project-btn {
+    margin: 4px 12px 12px; display: flex; align-items: center; gap: 8px;
+    padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer;
+    font-size: 13px; color: var(--text3); transition: all 0.15s; border: 1.5px dashed var(--border);
+    background: none; width: calc(100% - 24px);
+  }
+  .add-project-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* ── CENTER CONTENT ── */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+  .main-header {
+    padding: 22px 28px 0; display: flex; align-items: flex-start; justify-content: space-between; flex-shrink: 0;
+  }
+  .main-title { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+  .main-subtitle { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .main-actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+  .btn-outline {
+    padding: 8px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); font-size: 12.5px; color: var(--text2); cursor: pointer;
+    transition: all 0.15s; font-weight: 600; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .btn-primary {
+    padding: 8px 16px; border: none; border-radius: var(--radius-sm);
+    background: var(--accent); font-size: 12.5px; color: #fff; cursor: pointer;
+    transition: background 0.15s; font-weight: 600; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+
+  /* FILE LIST */
+  .file-area { flex: 1; overflow-y: auto; padding: 16px 28px 24px; }
+  .file-list-header {
+    display: flex; align-items: center; padding: 8px 12px; margin-bottom: 4px;
+    font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .col-check { width: 36px; }
+  .col-icon { width: 32px; }
+  .col-name { flex: 1; }
+  .col-status { width: 110px; text-align: center; }
+  .col-date { width: 100px; text-align: center; }
+  .col-star { width: 36px; text-align: center; }
+
+  .file-item {
+    display: flex; align-items: center; padding: 11px 12px;
+    border-radius: var(--radius-sm); cursor: pointer; transition: background 0.12s;
+    border: 1.5px solid transparent; margin-bottom: 3px; background: var(--surface);
+  }
+  .file-item:hover { background: var(--bg2); }
+  .file-item.selected { border-color: var(--accent); background: var(--accent-light); }
+  .file-item.dragging { opacity: 0.35; cursor: grabbing; }
+  .file-item.drag-folder-over { border-color: var(--accent); background: var(--accent-light); box-shadow: 0 0 0 2px var(--accent); }
+  .file-item[draggable="true"] { cursor: grab; }
+  .drop-line {
+    height: 2px; background: var(--accent); border-radius: 2px;
+    margin: 0 12px 3px; box-shadow: 0 0 6px var(--accent);
+    pointer-events: none;
+  }
+
+  /* FILE UPLOAD DROP ZONE */
+  .upload-dropzone {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 28px 20px; text-align: center; margin: 10px 0 16px;
+    transition: all 0.2s; cursor: pointer; background: var(--surface2);
+    color: var(--text3);
+  }
+  .upload-dropzone:hover, .upload-dropzone.dragover {
+    border-color: var(--accent); background: var(--accent-light); color: var(--accent);
+  }
+  .upload-dropzone .dz-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-dropzone .dz-text { font-size: 13px; font-weight: 600; }
+  .upload-dropzone .dz-sub { font-size: 11px; margin-top: 4px; }
+  #file-area-drop.ext-dragover .upload-dropzone {
+    border-color: var(--accent); background: var(--accent-light);
+  }
+  .ext-dragover-overlay {
+    position: absolute; inset: 0; background: rgba(91,110,140,0.10);
+    border: 3px dashed var(--accent); border-radius: var(--radius);
+    z-index: 10; display: flex; align-items: center; justify-content: center;
+    pointer-events: none; opacity: 0; transition: opacity 0.15s;
+  }
+  .ext-dragover-overlay.show { opacity: 1; }
+  .ext-dragover-overlay-text { font-size: 18px; font-weight: 800; color: var(--accent); background: var(--surface); padding: 16px 28px; border-radius: 12px; box-shadow: var(--shadow2); }
+  .file-area-wrap { position: relative; flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .drag-handle {
+    color: var(--text3); font-size: 13px; cursor: grab; padding: 0 6px 0 0;
+    opacity: 0; transition: opacity 0.15s; flex-shrink: 0; user-select: none;
+  }
+  .file-item:hover .drag-handle { opacity: 1; }
+  .col-drag { width: 20px; }
+
+  .check-circle {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0; color: #fff; font-size: 11px;
+  }
+  .check-circle:hover { border-color: var(--accent); background: var(--accent-light); }
+  .check-circle.checked { background: var(--accent); border-color: var(--accent); }
+
+  .file-icon { font-size: 18px; margin-right: 4px; }
+  .file-name { font-size: 13.5px; color: var(--text); font-weight: 500; }
+  .file-name.done { text-decoration: line-through; color: var(--text3); }
+  .file-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .status-pill {
+    font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+    display: inline-block; letter-spacing: 0.2px;
+  }
+  .status-review { background: #FFF3CD; color: #856404; }
+  .status-draft { background: #D1ECF1; color: #0C5460; }
+  .status-done { background: #D4EDDA; color: #155724; }
+  .status-wait { background: #F8D7DA; color: #721C24; }
+  .status-progress { background: #E2E3FA; color: #383B8A; }
+  [data-theme="dark"] .status-review { background: #3D320A; color: #D4A843; }
+  [data-theme="dark"] .status-draft { background: #0A2535; color: #56B5D4; }
+  [data-theme="dark"] .status-done { background: #0A2515; color: #5AAA7A; }
+  [data-theme="dark"] .status-wait { background: #350A0A; color: #D46060; }
+  [data-theme="dark"] .status-progress { background: #1A1B40; color: #9B9DE8; }
+
+  .star-btn {
+    background: none; border: none; cursor: pointer; font-size: 17px;
+    color: var(--border); transition: color 0.15s; padding: 2px 4px;
+  }
+  .star-btn.starred { color: var(--star); }
+  .star-btn:hover { color: var(--star); }
+
+  .date-text { font-size: 11.5px; color: var(--text3); text-align: center; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--text3);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 14px; opacity: 0.4; }
+  .empty-text { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .empty-sub { font-size: 12px; }
+
+  /* ── RIGHT PANEL ── */
+  #right-panel {
+    width: 280px; min-width: 240px; border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 0; height: 100vh; background: var(--surface);
+    transition: background 0.2s;
+  }
+  .panel-box { padding: 20px; border-bottom: 1px solid var(--border); }
+  .panel-box:last-child { border-bottom: none; flex: 1; overflow-y: auto; }
+  .panel-label { font-size: 10.5px; font-weight: 800; color: var(--text3); letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 12px; }
+  .panel-item-name { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .panel-item-sub { font-size: 11.5px; color: var(--text3); }
+
+  /* PROGRESS TIMELINE */
+  .progress-list { margin-top: 14px; }
+  .progress-step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; cursor: pointer; }
+  .step-indicator { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+  .step-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); transition: all 0.2s; flex-shrink: 0; }
+  .step-dot.done { background: var(--accent); border-color: var(--accent); }
+  .step-dot.current { background: var(--accent-light); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+  .step-line { width: 2px; flex: 1; background: var(--border); min-height: 16px; margin-top: 2px; }
+  .step-text { font-size: 12.5px; color: var(--text2); padding-top: 0px; line-height: 1.4; }
+  .step-text.done { color: var(--text3); text-decoration: line-through; }
+  .step-text.current { color: var(--accent); font-weight: 700; }
+  .add-step-btn {
+    display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3);
+    background: none; border: none; cursor: pointer; padding: 4px 0; margin-top: 2px; transition: color 0.15s;
+  }
+  .add-step-btn:hover { color: var(--accent); }
+
+  /* AI PANEL */
+  .ai-tool {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s;
+    margin-bottom: 6px; border: 1.5px solid var(--border);
+  }
+  .ai-tool:hover { background: var(--accent-light); border-color: var(--accent); }
+  .ai-icon { font-size: 20px; }
+  .ai-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .ai-desc { font-size: 11px; color: var(--text3); }
+  .ai-badge {
+    margin-left: auto; font-size: 9.5px; background: var(--accent-light); color: var(--accent);
+    border-radius: 4px; padding: 2px 6px; font-weight: 700;
+  }
+
+  /* ── CALENDAR VIEW ── */
+  #calendar-view { display: none; padding: 0; }
+  #calendar-view.active { display: block; }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 0 4px; }
+  .cal-nav { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text2); padding: 4px 8px; border-radius: 6px; transition: background 0.15s; }
+  .cal-nav:hover { background: var(--border); }
+  .cal-month { font-size: 18px; font-weight: 800; color: var(--text); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-label { text-align: center; font-size: 11px; font-weight: 700; color: var(--text3); padding: 6px 0; }
+  .cal-cell {
+    min-height: 64px; padding: 6px; border-radius: 8px; cursor: pointer;
+    transition: background 0.12s; background: var(--surface); border: 1.5px solid transparent;
+    position: relative;
+  }
+  .cal-cell:hover { background: var(--bg2); }
+  .cal-cell.today { border-color: var(--accent); }
+  .cal-cell.other-month .cal-date { color: var(--text3); }
+  .cal-date { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .cal-today-dot { width: 20px; height: 20px; background: var(--accent); color: #fff; border-radius: 50%; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+  .cal-event { font-size: 10px; background: var(--accent-light); color: var(--accent); padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .cal-event.red { background: #FFEDED; color: var(--danger); }
+  [data-theme="dark"] .cal-event.red { background: #350A0A; color: var(--danger); }
+
+  /* ── TODAY VIEW ── */
+  #today-view { display: none; }
+  #today-view.active { display: block; }
+  .today-section { margin-bottom: 24px; }
+  .today-section-title { font-size: 12px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .todo-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    border-radius: var(--radius-sm); background: var(--surface); margin-bottom: 4px;
+    cursor: pointer; transition: background 0.12s; border: 1.5px solid transparent;
+  }
+  .todo-item:hover { background: var(--bg2); }
+  .todo-text { font-size: 13px; color: var(--text); flex: 1; }
+  .todo-text.done { text-decoration: line-through; color: var(--text3); }
+  .todo-project { font-size: 11px; color: var(--text3); }
+  .add-todo-row {
+    display: flex; gap: 8px; margin-top: 10px;
+  }
+  .add-todo-input {
+    flex: 1; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 13px; background: var(--bg); color: var(--text); outline: none;
+  }
+  .add-todo-input:focus { border-color: var(--accent); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border-radius: 16px; padding: 32px 32px 24px;
+    width: 420px; box-shadow: var(--shadow2); transform: translateY(12px);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 20px; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { font-size: 12px; font-weight: 700; color: var(--text2); display: block; margin-bottom: 6px; letter-spacing: 0.3px; }
+  .modal-field input, .modal-field select, .modal-field textarea {
+    width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 13.5px; background: var(--bg);
+    color: var(--text); outline: none; transition: border-color 0.2s; font-family: inherit;
+  }
+  .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus { border-color: var(--accent); }
+  .modal-field textarea { resize: vertical; min-height: 70px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .btn-danger {
+    padding: 8px 16px; border: none; border-radius: var(--radius-sm);
+    background: var(--danger); font-size: 12.5px; color: #fff; cursor: pointer;
+    transition: opacity 0.15s; font-weight: 600; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-danger:hover { opacity: 0.85; }
+
+  /* CONTEXT MENU */
+  .ctx-menu {
+    position: fixed; z-index: 300; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow2); min-width: 160px; overflow: hidden;
+    animation: ctxFade 0.1s ease;
+  }
+  @keyframes ctxFade { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
+  .ctx-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    font-size: 13px; cursor: pointer; color: var(--text2); transition: background 0.12s;
+  }
+  .ctx-item:hover { background: var(--bg2); color: var(--text); }
+  .ctx-item.danger { color: var(--danger); }
+  .ctx-item.danger:hover { background: #fff0f0; }
+  [data-theme="dark"] .ctx-item.danger:hover { background: #350A0A; }
+  .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* PROJECT item delete btn */
+  .project-del {
+    display: none; background: none; border: none; color: var(--text3);
+    font-size: 13px; cursor: pointer; padding: 2px 4px; border-radius: 4px;
+    margin-left: 2px; transition: color 0.15s;
+  }
+  .project-item:hover .project-del { display: block; }
+  .project-del:hover { color: var(--danger); }
+
+  /* FILE item action row shown on hover */
+  .file-actions {
+    display: none; align-items: center; gap: 4px; margin-left: 8px;
+  }
+  .file-item:hover .file-actions { display: flex; }
+  .file-act-btn {
+    background: none; border: none; cursor: pointer; font-size: 13px;
+    color: var(--text3); padding: 3px 5px; border-radius: 4px; transition: all 0.15s;
+  }
+  .file-act-btn:hover { background: var(--bg3); color: var(--danger); }
+
+  /* CONFIRM MODAL */
+  .confirm-modal { width: 360px; }
+  .confirm-body { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 6px; }
+  .confirm-name { font-weight: 700; color: var(--text); }
+  .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-dot {
+    width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent; transition: all 0.15s;
+  }
+  .color-dot.selected { border-color: var(--text); transform: scale(1.15); }
+  .file-type-row { display: flex; gap: 8px; }
+  .file-type-btn {
+    flex: 1; padding: 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: none; cursor: pointer; text-align: center; font-size: 13px; color: var(--text2);
+    transition: all 0.15s;
+  }
+  .file-type-btn:hover, .file-type-btn.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .file-type-btn .ft-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+
+  /* NOTIFICATION TOAST */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(60px);
+    background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: 30px;
+    font-size: 13px; font-weight: 600; z-index: 200; transition: transform 0.3s;
+    box-shadow: var(--shadow2); white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* BREADCRUMB */
+  .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text3); margin: 12px 28px 0; flex-shrink: 0; }
+  .breadcrumb span { cursor: pointer; }
+  .breadcrumb span:hover { color: var(--accent); }
+  .breadcrumb .sep { color: var(--border); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+  /* IMPORTANT VIEW */
+  #important-view { display: none; }
+  #important-view.active { display: block; }
+
+  .view-section { padding: 20px 28px 0; }
+  .view-title { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; margin-bottom: 6px; }
+  .view-sub { font-size: 12px; color: var(--text3); margin-bottom: 16px; }
+
+  /* AI MODAL */
+  .ai-modal { width: 500px; }
+  .ai-result { background: var(--bg2); border-radius: 8px; padding: 14px; margin-top: 14px; font-size: 13px; color: var(--text); line-height: 1.7; max-height: 240px; overflow-y: auto; }
+  .ai-loading { display: flex; align-items: center; gap: 8px; color: var(--text3); font-size: 13px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ LOGIN ═══════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Lowon</div>
+    <div class="login-sub">법률 업무 통합 플랫폼</div>
+    <div class="login-field">
+      <label>아이디</label>
+      <input type="text" id="login-id" placeholder="아이디를 입력하세요" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>비밀번호</label>
+      <input type="password" id="login-pw" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">로그인</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ═══════════ APP ═══════════ -->
+<div id="app">
+
+  <!-- ── SIDEBAR ── -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <div class="user-row">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">L</div>
+          <div>
+            <div class="user-name" id="user-display-name">lowon</div>
+            <div class="user-role">변호사</div>
+          </div>
+        </div>
+        <button class="theme-btn" onclick="toggleTheme()" title="테마 변경" id="theme-btn">🌙</button>
+      </div>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="검색..." oninput="doSearch(this.value)">
+      </div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-item active" id="nav-today" onclick="switchView('today')">
+        <span class="nav-icon">☀️</span> 오늘 할 일
+        <span class="nav-badge" id="today-badge">0</span>
+      </div>
+      <div class="nav-item" id="nav-important" onclick="switchView('important')">
+        <span class="nav-icon">⭐</span> 중요
+        <span class="nav-badge star" id="star-badge">0</span>
+      </div>
+      <div class="nav-item" id="nav-calendar" onclick="switchView('calendar')">
+        <span class="nav-icon">📅</span> 캘린더
+      </div>
+    </div>
+
+    <div class="section-label">프로젝트</div>
+    <div class="project-list" id="project-list"></div>
+    <button class="add-project-btn" onclick="openAddProject()">
+      <span>＋</span> 새 프로젝트 추가
+    </button>
+  </div>
+
+  <!-- ── MAIN ── -->
+  <div id="main">
+
+    <!-- TODAY VIEW -->
+    <div id="today-view" class="active" style="padding:24px 28px; flex:1; overflow-y:auto;">
+      <div style="font-size:26px;font-weight:800;color:var(--text);letter-spacing:-0.5px;margin-bottom:4px;">오늘 할 일</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:20px;" id="today-date-label"></div>
+      <div class="today-section">
+        <div class="today-section-title">📌 할 일 목록</div>
+        <div id="todo-list"></div>
+        <div class="add-todo-row">
+          <input class="add-todo-input" id="todo-input" placeholder="새 할 일 추가..." onkeydown="if(event.key==='Enter')addTodo()">
+          <button class="btn-primary" onclick="addTodo()">추가</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORTANT VIEW -->
+    <div id="important-view" style="flex:1;overflow-y:auto;">
+      <div style="padding:24px 28px 0;">
+        <div style="font-size:26px;font-weight:800;color:var(--text);letter-spacing:-0.5px;margin-bottom:4px;">⭐ 중요 항목</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:20px;">별표 표시한 파일과 폴더</div>
+      </div>
+      <div style="padding:0 28px;" id="important-list"></div>
+    </div>
+
+    <!-- CALENDAR VIEW -->
+    <div id="calendar-view" style="padding:24px 28px; flex:1; overflow-y:auto;">
+      <div style="font-size:26px;font-weight:800;color:var(--text);letter-spacing:-0.5px;margin-bottom:20px;">📅 캘린더</div>
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calPrev()">◀</button>
+        <div class="cal-month" id="cal-month-label"></div>
+        <button class="cal-nav" onclick="calNext()">▶</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div style="margin-top:24px;">
+        <div class="today-section-title">📋 이달의 일정</div>
+        <div id="event-list-month"></div>
+      </div>
+    </div>
+
+    <!-- PROJECT VIEW -->
+    <div id="project-view" style="display:none; flex-direction:column; height:100%; overflow:hidden;">
+      <div class="main-header">
+        <div>
+          <div class="breadcrumb" id="breadcrumb"></div>
+          <div class="main-title" id="project-title">프로젝트</div>
+          <div class="main-subtitle" id="project-subtitle"></div>
+        </div>
+        <div class="main-actions">
+          <button class="btn-outline" onclick="openAddFile('folder')">📁 폴더 추가</button>
+          <button class="btn-primary" onclick="openAddFile('file')">＋ 파일 추가</button>
+        </div>
+      </div>
+      <div class="file-area-wrap">
+        <div class="ext-dragover-overlay" id="ext-overlay">
+          <div class="ext-dragover-overlay-text">📂 여기에 파일을 놓으세요</div>
+        </div>
+        <div class="file-area" id="file-area-drop">
+          <div class="file-list-header">
+            <div class="col-drag"></div>
+            <div class="col-check"></div>
+            <div class="col-icon"></div>
+            <div class="col-name">이름</div>
+            <div class="col-status">상태</div>
+            <div class="col-date">날짜</div>
+            <div class="col-star">★</div>
+          </div>
+          <!-- Upload drop zone -->
+          <div class="upload-dropzone" id="upload-dropzone" onclick="document.getElementById('file-upload-input').click()">
+            <div class="dz-icon">☁️</div>
+            <div class="dz-text">파일을 여기로 드래그하거나 클릭하여 업로드</div>
+            <div class="dz-sub">PDF · Word · HWP · Excel · 이미지 등 모든 파일 지원</div>
+          </div>
+          <input type="file" id="file-upload-input" multiple style="display:none" onchange="handleFileInputChange(this)">
+          <div id="file-list"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- ── RIGHT PANEL ── -->
+  <div id="right-panel">
+    <!-- TOP BOX: item details + progress -->
+    <div class="panel-box" style="flex:1;overflow-y:auto;">
+      <div id="panel-empty" style="text-align:center;padding:40px 0;color:var(--text3);">
+        <div style="font-size:36px;margin-bottom:12px;opacity:0.3;">📋</div>
+        <div style="font-size:13px;font-weight:600;">항목을 선택하세요</div>
+        <div style="font-size:11.5px;margin-top:4px;">파일이나 폴더를 클릭하면<br>상세 정보가 표시됩니다</div>
+      </div>
+      <div id="panel-content" style="display:none;">
+        <div class="panel-label">선택된 항목</div>
+        <div class="panel-item-name" id="panel-item-name"></div>
+        <div class="panel-item-sub" id="panel-item-sub"></div>
+        <div style="margin-top:18px;">
+          <div class="panel-label">진행 현황</div>
+          <div class="progress-list" id="progress-list"></div>
+          <button class="add-step-btn" onclick="addProgressStep()">
+            <span>＋</span> 단계 추가
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM BOX: AI services -->
+    <div class="panel-box" style="flex:0 0 auto;">
+      <div class="panel-label">AI 서비스</div>
+      <div class="ai-tool" onclick="openAI('summary')">
+        <span class="ai-icon">🤖</span>
+        <div>
+          <div class="ai-name">문서 요약</div>
+          <div class="ai-desc">NotebookLM 방식 AI 요약</div>
+        </div>
+        <span class="ai-badge">AI</span>
+      </div>
+      <div class="ai-tool" onclick="openAI('extract')">
+        <span class="ai-icon">📑</span>
+        <div>
+          <div class="ai-name">핵심 쟁점 추출</div>
+          <div class="ai-desc">법률 문서 쟁점 분석</div>
+        </div>
+        <span class="ai-badge">AI</span>
+      </div>
+      <div class="ai-tool" onclick="openAI('timeline')">
+        <span class="ai-icon">📊</span>
+        <div>
+          <div class="ai-name">타임라인 생성</div>
+          <div class="ai-desc">사건 경과 자동 정리</div>
+        </div>
+        <span class="ai-badge">AI</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ═══════════ MODALS ═══════════ -->
+
+<!-- Add Project -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal">
+    <div class="modal-title">새 프로젝트</div>
+    <div class="modal-field">
+      <label>프로젝트 이름</label>
+      <input type="text" id="proj-name-input" placeholder="예: 황석현 변호사 사건">
+    </div>
+    <div class="modal-field">
+      <label>색상</label>
+      <div class="color-picker" id="color-picker">
+        <div class="color-dot selected" style="background:#5B6E8C" data-color="#5B6E8C" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#8C5B5B" data-color="#8C5B5B" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#5B8C6A" data-color="#5B8C6A" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#8C7A5B" data-color="#8C7A5B" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#7A5B8C" data-color="#7A5B8C" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#5B8C8C" data-color="#5B8C8C" onclick="selectColor(this)"></div>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>메모 (선택)</label>
+      <textarea id="proj-memo-input" placeholder="프로젝트 설명..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-project')">취소</button>
+      <button class="btn-primary" onclick="addProject()">만들기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add File/Folder -->
+<div class="modal-overlay" id="modal-file">
+  <div class="modal">
+    <div class="modal-title" id="modal-file-title">새 항목 추가</div>
+    <div class="modal-field">
+      <label>종류</label>
+      <div class="file-type-row" id="file-type-row">
+        <button class="file-type-btn selected" data-type="folder" onclick="selectFileType(this)">
+          <span class="ft-icon">📁</span>폴더
+        </button>
+        <button class="file-type-btn" data-type="pdf" onclick="selectFileType(this)">
+          <span class="ft-icon">📄</span>PDF
+        </button>
+        <button class="file-type-btn" data-type="word" onclick="selectFileType(this)">
+          <span class="ft-icon">📝</span>Word
+        </button>
+        <button class="file-type-btn" data-type="hwp" onclick="selectFileType(this)">
+          <span class="ft-icon">📋</span>HWP
+        </button>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>이름</label>
+      <input type="text" id="file-name-input" placeholder="이름을 입력하세요">
+    </div>
+    <div class="modal-field">
+      <label>상태</label>
+      <select id="file-status-input">
+        <option value="draft">초안 작성</option>
+        <option value="review">검토 중</option>
+        <option value="progress">진행 중</option>
+        <option value="wait">자료 요청</option>
+        <option value="done">완료</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-file')">취소</button>
+      <button class="btn-primary" onclick="addFile()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar Event -->
+<div class="modal-overlay" id="modal-event">
+  <div class="modal">
+    <div class="modal-title">일정 추가</div>
+    <div class="modal-field">
+      <label>일정 제목</label>
+      <input type="text" id="event-title-input" placeholder="예: 변론기일, 의뢰인 면담">
+    </div>
+    <div class="modal-field">
+      <label>날짜</label>
+      <input type="date" id="event-date-input">
+    </div>
+    <div class="modal-field">
+      <label>시간 (선택)</label>
+      <input type="time" id="event-time-input">
+    </div>
+    <div class="modal-field">
+      <label>분류</label>
+      <select id="event-type-input">
+        <option value="normal">일반</option>
+        <option value="urgent">긴급</option>
+        <option value="court">법원 기일</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-event')">취소</button>
+      <button class="btn-primary" onclick="addCalEvent()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal confirm-modal">
+    <div class="modal-title" id="confirm-title">삭제 확인</div>
+    <div class="confirm-body" id="confirm-body"></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-confirm')">취소</button>
+      <button class="btn-danger" id="confirm-ok-btn">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Modal -->
+<div class="modal-overlay" id="modal-ai">
+  <div class="modal ai-modal">
+    <div class="modal-title" id="ai-modal-title">AI 분석</div>
+    <div class="ai-result" id="ai-result">
+      <div class="ai-loading"><div class="spinner"></div> 분석 중...</div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-outline" onclick="closeModal('modal-ai')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════ STATE ═══════════
+let state = {
+  user: 'lowon',
+  theme: 'light',
+  projects: [
+    { id: 'p1', name: '황석현 변호사', color: '#5B6E8C', memo: '손해배상 소송 관련 자료' },
+    { id: 'p2', name: '제출된 서면', color: '#8C5B5B', memo: '각종 제출 서면 모음' },
+    { id: 'p3', name: '신영규 변호사 지시사항', color: '#5B8C6A', memo: '지시사항 및 메모' },
+  ],
+  files: {
+    'p1': [
+      { id: 'f1', type: 'folder', name: '소장 및 준비서면', status: 'review', date: '2026-05-15', starred: false, checked: false, progress: [
+        {text:'초안 작성', done:true}, {text:'검토 요청', done:true}, {text:'수정 완료', done:false}, {text:'제출', done:false}
+      ]},
+      { id: 'f2', type: 'pdf', name: '손해배상 계산서.pdf', status: 'done', date: '2026-05-12', starred: true, checked: false, progress: [
+        {text:'자료 수집', done:true}, {text:'계산 완료', done:true}
+      ]},
+      { id: 'f3', type: 'hwp', name: '증거자료 목록.hwp', status: 'progress', date: '2026-05-18', starred: false, checked: false, progress: [
+        {text:'목록 작성 중', done:false}
+      ]},
+    ],
+    'p2': [
+      { id: 'f4', type: 'folder', name: '2026년 1분기', status: 'done', date: '2026-04-01', starred: false, checked: false, progress: [{text:'정리 완료', done:true}] },
+      { id: 'f5', type: 'word', name: '답변서_최종.docx', status: 'review', date: '2026-05-20', starred: true, checked: false, progress: [
+        {text:'초안', done:true}, {text:'1차 검토', done:true}, {text:'최종 확인', done:false}
+      ]},
+    ],
+    'p3': [
+      { id: 'f6', type: 'pdf', name: '지시사항_05월.pdf', status: 'wait', date: '2026-05-19', starred: false, checked: false, progress: [
+        {text:'수령', done:true}, {text:'검토 중', done:false}
+      ]},
+    ],
+  },
+  todos: [
+    { id: 't1', text: '답변서 최종 검토', done: false, project: '제출된 서면' },
+    { id: 't2', text: '황석현 변호사 미팅 준비', done: false, project: '황석현 변호사' },
+    { id: 't3', text: '증거자료 목록 업데이트', done: true, project: '황석현 변호사' },
+  ],
+  events: [
+    { id: 'e1', title: '변론기일', date: '2026-05-22', time: '10:00', type: 'court' },
+    { id: 'e2', title: '의뢰인 면담', date: '2026-05-28', time: '14:00', type: 'normal' },
+    { id: 'e3', title: '서면 제출 마감', date: '2026-05-31', time: '', type: 'urgent' },
+  ],
+  currentView: 'today',
+  currentProject: null,
+  currentFolder: null, // if drilling into a folder
+  selectedFile: null,
+  selectedColor: '#5B6E8C',
+  selectedFileType: 'folder',
+  calYear: 2026,
+  calMonth: 4, // 0-based
+  pendingCalDate: null,
+  aiType: null,
+};
+
+// ═══════════ LOGIN ═══════════
+function doLogin() {
+  const id = document.getElementById('login-id').value.trim();
+  const pw = document.getElementById('login-pw').value.trim();
+  if (id === 'lowon' && pw === 'lowon') {
+    state.user = id;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } else {
+    document.getElementById('login-err').textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
+  }
+}
+document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('login-id').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-pw').focus(); });
+
+function initApp() {
+  const name = state.user;
+  document.getElementById('user-display-name').textContent = name;
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  const d = new Date();
+  document.getElementById('today-date-label').textContent =
+    `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${['일','월','화','수','목','금','토'][d.getDay()]}요일`;
+  state.calYear = d.getFullYear();
+  state.calMonth = d.getMonth();
+  renderProjects();
+  renderTodos();
+  renderCalendar();
+  updateBadges();
+  switchView('today');
+}
+
+// ═══════════ THEME ═══════════
+function toggleTheme() {
+  state.theme = state.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', state.theme === 'dark' ? 'dark' : '');
+  document.getElementById('theme-btn').textContent = state.theme === 'dark' ? '☀️' : '🌙';
+}
+
+// ═══════════ VIEW SWITCHING ═══════════
+function switchView(view) {
+  state.currentView = view;
+  ['today','important','calendar'].forEach(v => {
+    document.getElementById(`${v}-view`).classList.remove('active');
+    document.getElementById(`${v}-view`).style.display = 'none';
+    document.getElementById(`nav-${v}`)?.classList.remove('active');
+  });
+  document.getElementById('project-view').style.display = 'none';
+  document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
+
+  if (view === 'today') {
+    document.getElementById('today-view').style.display = 'block';
+    document.getElementById('nav-today').classList.add('active');
+    renderTodos();
+  } else if (view === 'important') {
+    document.getElementById('important-view').style.display = 'block';
+    document.getElementById('nav-important').classList.add('active');
+    renderImportant();
+  } else if (view === 'calendar') {
+    document.getElementById('calendar-view').style.display = 'block';
+    document.getElementById('nav-calendar').classList.add('active');
+    renderCalendar();
+  }
+}
+
+function openProject(id) {
+  state.currentProject = id;
+  state.currentFolder = null;
+  state.selectedFile = null;
+  state.currentView = 'project';
+
+  ['today','important','calendar'].forEach(v => {
+    document.getElementById(`${v}-view`).style.display = 'none';
+    document.getElementById(`nav-${v}`)?.classList.remove('active');
+  });
+  document.getElementById('project-view').style.display = 'flex';
+
+  document.querySelectorAll('.project-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === id);
+  });
+
+  const proj = state.projects.find(p => p.id === id);
+  document.getElementById('project-title').textContent = proj.name;
+  document.getElementById('project-subtitle').textContent = proj.memo || '';
+  updateBreadcrumb();
+  renderFiles();
+  clearPanel();
+  setTimeout(initUploadZone, 0);
+}
+
+function openFolder(fileId) {
+  state.currentFolder = fileId;
+  state.selectedFile = null;
+  updateBreadcrumb();
+  renderFiles();
+  clearPanel();
+}
+
+function updateBreadcrumb() {
+  const bc = document.getElementById('breadcrumb');
+  const proj = state.projects.find(p => p.id === state.currentProject);
+  let html = `<span onclick="openProject('${proj.id}')">${proj.name}</span>`;
+  if (state.currentFolder) {
+    const allFiles = state.files[state.currentProject] || [];
+    const folder = allFiles.find(f => f.id === state.currentFolder);
+    if (folder) {
+      html += `<span class="sep">›</span><span>${folder.name}</span>`;
+    }
+  }
+  bc.innerHTML = html;
+}
+
+// ═══════════ PROJECTS ═══════════
+function renderProjects() {
+  const el = document.getElementById('project-list');
+  el.innerHTML = '';
+  state.projects.forEach(p => {
+    const files = state.files[p.id] || [];
+    const div = document.createElement('div');
+    div.className = 'project-item';
+    div.dataset.id = p.id;
+    div.innerHTML = `
+      <div class="project-dot" style="background:${p.color}"></div>
+      <div class="project-name">${p.name}</div>
+      <div class="project-count">${files.length}</div>
+      <button class="project-del" title="프로젝트 삭제" onclick="deleteProject('${p.id}',event)">✕</button>
+    `;
+    div.onclick = () => openProject(p.id);
+    el.appendChild(div);
+  });
+}
+
+let selectedProjColor = '#5B6E8C';
+function openAddProject() {
+  selectedProjColor = '#5B6E8C';
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+  document.querySelector('.color-dot').classList.add('selected');
+  document.getElementById('proj-name-input').value = '';
+  document.getElementById('proj-memo-input').value = '';
+  openModal('modal-project');
+}
+function selectColor(el) {
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedProjColor = el.dataset.color;
+}
+function addProject() {
+  const name = document.getElementById('proj-name-input').value.trim();
+  if (!name) { showToast('프로젝트 이름을 입력하세요'); return; }
+  const id = 'p' + Date.now();
+  state.projects.push({ id, name, color: selectedProjColor, memo: document.getElementById('proj-memo-input').value });
+  state.files[id] = [];
+  closeModal('modal-project');
+  renderProjects();
+  showToast('프로젝트가 추가되었습니다');
+  openProject(id);
+}
+
+// ═══════════ FILES ═══════════
+const FILE_ICONS = { folder: '📁', pdf: '📄', word: '📝', hwp: '📋', excel: '📊', img: '🖼️', file: '📎' };
+const STATUS_MAP = {
+  draft: ['status-draft', '초안 작성'],
+  review: ['status-review', '검토 중'],
+  done: ['status-done', '완료'],
+  wait: ['status-wait', '자료 요청'],
+  progress: ['status-progress', '진행 중'],
+};
+
+function getDisplayFiles() {
+  const all = state.files[state.currentProject] || [];
+  if (state.currentFolder) {
+    const folder = all.find(f => f.id === state.currentFolder);
+    return folder?.children || [];
+  }
+  return all;
+}
+
+// ═══════════ DRAG & DROP ═══════════
+let drag = {
+  srcId: null,       // dragging file id
+  srcList: null,     // reference to the array being dragged from
+  overId: null,      // folder being hovered (for move-into)
+  folderTimer: null, // timer for auto-open folder
+};
+
+function renderFiles() {
+  const el = document.getElementById('file-list');
+  const files = getDisplayFiles();
+  if (!files.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div><div class="empty-text">항목이 없습니다</div><div class="empty-sub">파일이나 폴더를 추가해 보세요</div></div>`;
+    return;
+  }
+  el.innerHTML = '';
+  files.forEach((f, idx) => {
+    const [sc, sl] = STATUS_MAP[f.status] || ['status-draft', f.status];
+    const div = document.createElement('div');
+    div.className = 'file-item' + (state.selectedFile === f.id ? ' selected' : '');
+    div.dataset.id = f.id;
+    div.dataset.idx = idx;
+    div.draggable = true;
+    div.innerHTML = `
+      <div class="col-drag"><span class="drag-handle" title="드래그하여 순서 변경">⠿</span></div>
+      <div class="col-check">
+        <div class="check-circle ${f.checked ? 'checked' : ''}" onclick="toggleCheck('${f.id}',event)">
+          ${f.checked ? '✓' : ''}
+        </div>
+      </div>
+      <div class="col-icon"><span class="file-icon">${FILE_ICONS[f.type] || '📄'}</span></div>
+      <div class="col-name">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="file-name ${f.checked ? 'done' : ''}">${f.name}</div>
+          <div class="file-actions">
+            <button class="file-act-btn" title="삭제" onclick="deleteFile('${f.id}',event)">🗑</button>
+          </div>
+        </div>
+        <div class="file-meta">${f.type.toUpperCase()} · ${f.date}${f.fileSize ? ' · ' + formatFileSize(f.fileSize) : ''}</div>
+      </div>
+      <div class="col-status"><span class="status-pill ${sc}">${sl}</span></div>
+      <div class="col-date"><span class="date-text">${formatDate(f.date)}</span></div>
+      <div class="col-star">
+        <button class="star-btn ${f.starred ? 'starred' : ''}" onclick="toggleStar('${f.id}',event)">★</button>
+      </div>
+    `;
+    if (f.type === 'folder') {
+      div.ondblclick = () => openFolder(f.id);
+    }
+    div.onclick = (e) => {
+      if (e.target.classList.contains('star-btn') || e.target.classList.contains('check-circle')) return;
+      selectFile(f.id);
+    };
+
+    // ── Drag events ──
+    div.addEventListener('dragstart', e => {
+      drag.srcId = f.id;
+      drag.srcList = getDisplayFiles();
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', f.id);
+      setTimeout(() => div.classList.add('dragging'), 0);
+    });
+
+    div.addEventListener('dragend', () => {
+      div.classList.remove('dragging');
+      clearDropIndicators();
+      drag.srcId = null;
+      drag.overId = null;
+      clearTimeout(drag.folderTimer);
+    });
+
+    div.addEventListener('dragover', e => {
+      if (!drag.srcId || drag.srcId === f.id) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      if (f.type === 'folder') {
+        // Hovering over a folder — highlight it as drop target
+        clearDropIndicators();
+        div.classList.add('drag-folder-over');
+        drag.overId = f.id;
+        return;
+      }
+
+      // Show insertion line above or below based on cursor position
+      clearDropIndicators();
+      const rect = div.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const before = e.clientY < mid;
+      const line = document.createElement('div');
+      line.className = 'drop-line';
+      line.dataset.dropTarget = f.id;
+      line.dataset.position = before ? 'before' : 'after';
+      if (before) {
+        el.insertBefore(line, div);
+      } else {
+        div.after(line);
+      }
+    });
+
+    div.addEventListener('dragleave', e => {
+      if (!div.contains(e.relatedTarget)) {
+        div.classList.remove('drag-folder-over');
+        if (drag.overId === f.id) drag.overId = null;
+      }
+    });
+
+    div.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!drag.srcId || drag.srcId === f.id) return;
+      const srcId = drag.srcId;
+
+      if (f.type === 'folder') {
+        // Move dragged item INTO the folder
+        moveFileIntoFolder(srcId, f.id);
+      } else {
+        // Reorder within the list
+        const line = el.querySelector('.drop-line[data-drop-target="' + f.id + '"]');
+        const before = line?.dataset.position === 'before';
+        reorderFiles(srcId, f.id, before);
+      }
+      clearDropIndicators();
+    });
+
+    el.appendChild(div);
+  });
+
+  // Drop on empty space at bottom = move to end
+  el.addEventListener('dragover', e => {
+    if (!drag.srcId) return;
+    const overItem = e.target.closest('.file-item');
+    if (!overItem) {
+      e.preventDefault();
+      clearDropIndicators();
+      const line = document.createElement('div');
+      line.className = 'drop-line';
+      line.dataset.dropTarget = '__end__';
+      el.appendChild(line);
+    }
+  });
+  el.addEventListener('drop', e => {
+    if (!drag.srcId) return;
+    const overItem = e.target.closest('.file-item');
+    if (!overItem) {
+      e.preventDefault();
+      reorderFiles(drag.srcId, null, false);
+      clearDropIndicators();
+    }
+  });
+}
+
+function clearDropIndicators() {
+  document.querySelectorAll('.drop-line').forEach(l => l.remove());
+  document.querySelectorAll('.drag-folder-over').forEach(el => el.classList.remove('drag-folder-over'));
+}
+
+function reorderFiles(srcId, targetId, insertBefore) {
+  const list = getDisplayFiles();
+  const srcIdx = list.findIndex(f => f.id === srcId);
+  if (srcIdx === -1) return;
+  const [item] = list.splice(srcIdx, 1);
+  if (targetId === null) {
+    list.push(item);
+  } else {
+    let tgtIdx = list.findIndex(f => f.id === targetId);
+    if (tgtIdx === -1) { list.push(item); }
+    else { list.splice(insertBefore ? tgtIdx : tgtIdx + 1, 0, item); }
+  }
+  // Write back to state
+  writeDisplayFiles(list);
+  renderFiles();
+}
+
+function moveFileIntoFolder(srcId, folderId) {
+  const list = getDisplayFiles();
+  const srcIdx = list.findIndex(f => f.id === srcId);
+  if (srcIdx === -1) return;
+  const folder = list.find(f => f.id === folderId);
+  if (!folder || folder.type !== 'folder') return;
+  const [item] = list.splice(srcIdx, 1);
+  if (!folder.children) folder.children = [];
+  folder.children.push(item);
+  writeDisplayFiles(list);
+  renderFiles();
+  showToast(`📁 "${item.name}"이(가) "${folder.name}" 폴더로 이동되었습니다`);
+}
+
+// ═══════════ REAL FILE UPLOAD ═══════════
+function getFileType(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  if (['pdf'].includes(ext)) return 'pdf';
+  if (['doc','docx'].includes(ext)) return 'word';
+  if (['hwp','hwpx'].includes(ext)) return 'hwp';
+  if (['xls','xlsx','csv'].includes(ext)) return 'excel';
+  if (['png','jpg','jpeg','gif','webp','svg'].includes(ext)) return 'img';
+  return 'file';
+}
+
+function importRealFiles(fileList) {
+  if (!state.currentProject) { showToast('먼저 프로젝트를 선택하세요'); return; }
+  const today = new Date().toISOString().slice(0, 10);
+  const added = [];
+  Array.from(fileList).forEach(file => {
+    const type = getFileType(file.name);
+    const f = {
+      id: 'f' + Date.now() + Math.random().toString(36).slice(2),
+      type,
+      name: file.name,
+      status: 'draft',
+      date: today,
+      starred: false,
+      checked: false,
+      progress: [{ text: '업로드 완료', done: true }, { text: '검토 대기', done: false }],
+      realFile: file,           // keep reference for preview
+      fileSize: file.size,
+    };
+    if (state.currentFolder) {
+      const allFiles = state.files[state.currentProject];
+      const folder = allFiles.find(x => x.id === state.currentFolder);
+      if (folder) { if (!folder.children) folder.children = []; folder.children.push(f); }
+    } else {
+      if (!state.files[state.currentProject]) state.files[state.currentProject] = [];
+      state.files[state.currentProject].push(f);
+    }
+    added.push(file.name);
+  });
+  renderFiles();
+  renderProjects();
+  showToast(`✅ ${added.length}개 파일이 추가되었습니다`);
+}
+
+function handleFileInputChange(input) {
+  if (input.files.length) importRealFiles(input.files);
+  input.value = '';
+}
+
+function initUploadZone() {
+  const area = document.getElementById('file-area-drop');
+  const overlay = document.getElementById('ext-overlay');
+  const dz = document.getElementById('upload-dropzone');
+  if (!area) return;
+
+  let extDragCounter = 0;
+
+  // Detect when a real OS file is dragged over the whole project view
+  area.addEventListener('dragenter', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    extDragCounter++;
+    overlay.classList.add('show');
+  });
+  area.addEventListener('dragleave', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    extDragCounter--;
+    if (extDragCounter <= 0) { extDragCounter = 0; overlay.classList.remove('show'); }
+  });
+  area.addEventListener('dragover', e => {
+    if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+  });
+  area.addEventListener('drop', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    extDragCounter = 0;
+    overlay.classList.remove('show');
+    importRealFiles(e.dataTransfer.files);
+  });
+
+  // Drop zone widget own events
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    if (e.dataTransfer.files.length) importRealFiles(e.dataTransfer.files);
+  });
+}
+
+function writeDisplayFiles(newList) {
+  const all = state.files[state.currentProject] || [];
+  if (state.currentFolder) {
+    const folder = all.find(f => f.id === state.currentFolder);
+    if (folder) folder.children = newList;
+  } else {
+    state.files[state.currentProject] = newList;
+  }
+}
+
+function selectFile(id) {
+  state.selectedFile = id;
+  renderFiles();
+  const files = getDisplayFiles();
+  const f = files.find(x => x.id === id);
+  if (!f) return;
+  document.getElementById('panel-empty').style.display = 'none';
+  document.getElementById('panel-content').style.display = 'block';
+  document.getElementById('panel-item-name').textContent = f.name;
+  document.getElementById('panel-item-sub').textContent = `${f.type.toUpperCase()} · ${STATUS_MAP[f.status]?.[1] || f.status} · ${f.date}`;
+  renderProgress(f);
+}
+
+function clearPanel() {
+  state.selectedFile = null;
+  document.getElementById('panel-empty').style.display = 'block';
+  document.getElementById('panel-content').style.display = 'none';
+}
+
+function renderProgress(file) {
+  const el = document.getElementById('progress-list');
+  el.innerHTML = '';
+  const steps = file.progress || [];
+  const currentIdx = steps.findIndex(s => !s.done);
+  steps.forEach((s, i) => {
+    const isCurrent = i === currentIdx;
+    const div = document.createElement('div');
+    div.className = 'progress-step';
+    div.innerHTML = `
+      <div class="step-indicator">
+        <div class="step-dot ${s.done ? 'done' : (isCurrent ? 'current' : '')}"></div>
+        ${i < steps.length - 1 ? '<div class="step-line"></div>' : ''}
+      </div>
+      <div class="step-text ${s.done ? 'done' : (isCurrent ? 'current' : '')}">${s.text}</div>
+    `;
+    div.onclick = () => toggleStep(file.id, i);
+    el.appendChild(div);
+  });
+}
+
+function toggleStep(fileId, stepIdx) {
+  const files = getAllFiles();
+  const f = files.find(x => x.id === fileId);
+  if (!f || !f.progress) return;
+  f.progress[stepIdx].done = !f.progress[stepIdx].done;
+  renderProgress(f);
+}
+
+function addProgressStep() {
+  const files = getAllFiles();
+  const f = files.find(x => x.id === state.selectedFile);
+  if (!f) return;
+  const text = prompt('새 단계 이름:');
+  if (!text) return;
+  if (!f.progress) f.progress = [];
+  f.progress.push({ text, done: false });
+  renderProgress(f);
+}
+
+function getAllFiles(projectId) {
+  const pid = projectId || state.currentProject;
+  return state.files[pid] || [];
+}
+
+function toggleCheck(id, e) {
+  e.stopPropagation();
+  const files = getDisplayFiles();
+  const f = files.find(x => x.id === id);
+  if (f) { f.checked = !f.checked; renderFiles(); updateBadges(); }
+}
+
+function toggleStar(id, e) {
+  e.stopPropagation();
+  const files = getDisplayFiles();
+  const f = files.find(x => x.id === id);
+  if (f) {
+    f.starred = !f.starred;
+    renderFiles();
+    updateBadges();
+    if (state.currentView === 'important') renderImportant();
+    showToast(f.starred ? '⭐ 중요 항목으로 표시했습니다' : '별표를 해제했습니다');
+  }
+}
+
+function updateBadges() {
+  // Today badge: unchecked todos
+  const todoBadge = state.todos.filter(t => !t.done).length;
+  document.getElementById('today-badge').textContent = todoBadge;
+
+  // Star badge: starred files across all projects
+  let starCount = 0;
+  Object.values(state.files).forEach(arr => {
+    arr.forEach(f => { if (f.starred) starCount++; });
+  });
+  document.getElementById('star-badge').textContent = starCount;
+}
+
+let selectedFileType = 'folder';
+function openAddFile(defaultType) {
+  selectedFileType = defaultType || 'folder';
+  document.querySelectorAll('.file-type-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.type === selectedFileType);
+  });
+  document.getElementById('file-name-input').value = '';
+  document.getElementById('modal-file-title').textContent = defaultType === 'folder' ? '새 폴더 추가' : '새 파일 추가';
+  openModal('modal-file');
+}
+function selectFileType(el) {
+  selectedFileType = el.dataset.type;
+  document.querySelectorAll('.file-type-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function addFile() {
+  const name = document.getElementById('file-name-input').value.trim();
+  if (!name) { showToast('이름을 입력하세요'); return; }
+  const status = document.getElementById('file-status-input').value;
+  const today = new Date().toISOString().slice(0,10);
+  const f = {
+    id: 'f' + Date.now(), type: selectedFileType, name,
+    status, date: today, starred: false, checked: false,
+    progress: [{ text: STATUS_MAP[status]?.[1] || status, done: false }],
+    children: selectedFileType === 'folder' ? [] : undefined,
+  };
+  if (state.currentFolder) {
+    const allFiles = state.files[state.currentProject];
+    const folder = allFiles.find(x => x.id === state.currentFolder);
+    if (folder) { if (!folder.children) folder.children = []; folder.children.push(f); }
+  } else {
+    if (!state.files[state.currentProject]) state.files[state.currentProject] = [];
+    state.files[state.currentProject].push(f);
+  }
+  closeModal('modal-file');
+  renderFiles();
+  renderProjects();
+  showToast('항목이 추가되었습니다');
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + 'B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+}
+
+function formatDate(str) {
+  if (!str) return '';
+  const d = new Date(str);
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+// ═══════════ TODAY ═══════════
+function renderTodos() {
+  const el = document.getElementById('todo-list');
+  el.innerHTML = '';
+  state.todos.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'todo-item';
+    div.innerHTML = `
+      <div class="check-circle ${t.done ? 'checked' : ''}" onclick="toggleTodo('${t.id}')">
+        ${t.done ? '✓' : ''}
+      </div>
+      <div style="flex:1">
+        <div class="todo-text ${t.done ? 'done' : ''}">${t.text}</div>
+        ${t.project ? `<div class="todo-project">📁 ${t.project}</div>` : ''}
+      </div>
+    `;
+    el.appendChild(div);
+  });
+}
+function toggleTodo(id) {
+  const t = state.todos.find(x => x.id === id);
+  if (t) { t.done = !t.done; renderTodos(); updateBadges(); }
+}
+function addTodo() {
+  const input = document.getElementById('todo-input');
+  const text = input.value.trim();
+  if (!text) return;
+  state.todos.push({ id: 't'+Date.now(), text, done: false, project: '' });
+  input.value = '';
+  renderTodos();
+  updateBadges();
+}
+
+// ═══════════ IMPORTANT ═══════════
+function renderImportant() {
+  const el = document.getElementById('important-list');
+  el.innerHTML = '';
+  let found = false;
+  state.projects.forEach(p => {
+    const starred = (state.files[p.id] || []).filter(f => f.starred);
+    if (!starred.length) return;
+    found = true;
+    const sec = document.createElement('div');
+    sec.style.cssText = 'margin-bottom:20px;';
+    sec.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;padding:4px 0;border-bottom:1px solid var(--border);">${p.name}</div>`;
+    starred.forEach(f => {
+      const [sc, sl] = STATUS_MAP[f.status] || ['status-draft', f.status];
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <div class="col-check"><div class="check-circle ${f.checked?'checked':''}">
+          ${f.checked?'✓':''}
+        </div></div>
+        <div class="col-icon"><span class="file-icon">${FILE_ICONS[f.type]||'📄'}</span></div>
+        <div class="col-name"><div class="file-name">${f.name}</div></div>
+        <div class="col-status"><span class="status-pill ${sc}">${sl}</span></div>
+        <div class="col-star"><button class="star-btn starred" onclick="unstarFromImportant('${p.id}','${f.id}')">★</button></div>
+      `;
+      sec.appendChild(item);
+    });
+    el.appendChild(sec);
+  });
+  if (!found) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⭐</div><div class="empty-text">중요 항목이 없습니다</div><div class="empty-sub">파일이나 폴더의 별표를 눌러 여기에 추가하세요</div></div>`;
+  }
+}
+function unstarFromImportant(projId, fileId) {
+  const f = (state.files[projId] || []).find(x => x.id === fileId);
+  if (f) { f.starred = false; renderImportant(); updateBadges(); }
+}
+
+// ═══════════ CALENDAR ═══════════
+function renderCalendar() {
+  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('cal-month-label').textContent = `${state.calYear}년 ${months[state.calMonth]}`;
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  const days = ['일','월','화','수','목','금','토'];
+  days.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-label';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+  const first = new Date(state.calYear, state.calMonth, 1);
+  const last = new Date(state.calYear, state.calMonth+1, 0);
+  const today = new Date();
+  for (let i = 0; i < first.getDay(); i++) {
+    const prev = new Date(state.calYear, state.calMonth, -first.getDay()+i+1);
+    const cell = makeCalCell(prev, true, today);
+    grid.appendChild(cell);
+  }
+  for (let d = 1; d <= last.getDate(); d++) {
+    const date = new Date(state.calYear, state.calMonth, d);
+    const cell = makeCalCell(date, false, today);
+    grid.appendChild(cell);
+  }
+  renderEventList();
+}
+function makeCalCell(date, otherMonth, today) {
+  const cell = document.createElement('div');
+  cell.className = 'cal-cell' + (otherMonth ? ' other-month' : '');
+  const isToday = date.toDateString() === today.toDateString();
+  const dateStr = date.toISOString().slice(0,10);
+  const dayEvents = state.events.filter(e => e.date === dateStr);
+  const dateEl = document.createElement('div');
+  if (isToday) {
+    cell.classList.add('today');
+    dateEl.className = 'cal-today-dot';
+    dateEl.textContent = date.getDate();
+  } else {
+    dateEl.className = 'cal-date';
+    dateEl.textContent = date.getDate();
+  }
+  cell.appendChild(dateEl);
+  dayEvents.slice(0,2).forEach(ev => {
+    const e = document.createElement('div');
+    e.className = 'cal-event' + (ev.type === 'urgent' ? ' red' : '');
+    e.textContent = ev.title;
+    cell.appendChild(e);
+  });
+  cell.onclick = () => openAddCalEvent(dateStr);
+  return cell;
+}
+function renderEventList() {
+  const el = document.getElementById('event-list-month');
+  const monthStr = `${state.calYear}-${String(state.calMonth+1).padStart(2,'0')}`;
+  const events = state.events.filter(e => e.date.startsWith(monthStr)).sort((a,b)=>a.date.localeCompare(b.date));
+  if (!events.length) { el.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:12px 0;">이달의 일정이 없습니다.</div>`; return; }
+  el.innerHTML = '';
+  events.forEach(ev => {
+    const div = document.createElement('div');
+    div.className = 'todo-item';
+    const typeIcon = ev.type === 'court' ? '⚖️' : ev.type === 'urgent' ? '🚨' : '📌';
+    div.innerHTML = `
+      <span style="font-size:16px;">${typeIcon}</span>
+      <div style="flex:1"><div class="todo-text">${ev.title}</div>
+      <div class="todo-project">${ev.date}${ev.time?' '+ev.time:''}</div></div>
+    `;
+    el.appendChild(div);
+  });
+}
+function calPrev() { state.calMonth--; if(state.calMonth<0){state.calMonth=11;state.calYear--;} renderCalendar(); }
+function calNext() { state.calMonth++; if(state.calMonth>11){state.calMonth=0;state.calYear++;} renderCalendar(); }
+function openAddCalEvent(dateStr) {
+  state.pendingCalDate = dateStr;
+  document.getElementById('event-title-input').value = '';
+  document.getElementById('event-date-input').value = dateStr || new Date().toISOString().slice(0,10);
+  document.getElementById('event-time-input').value = '';
+  openModal('modal-event');
+}
+function addCalEvent() {
+  const title = document.getElementById('event-title-input').value.trim();
+  const date = document.getElementById('event-date-input').value;
+  const time = document.getElementById('event-time-input').value;
+  const type = document.getElementById('event-type-input').value;
+  if (!title || !date) { showToast('제목과 날짜를 입력하세요'); return; }
+  state.events.push({ id: 'e'+Date.now(), title, date, time, type });
+  closeModal('modal-event');
+  renderCalendar();
+  showToast('일정이 추가되었습니다');
+}
+
+// ═══════════ SEARCH ═══════════
+function doSearch(query) {
+  if (!query.trim()) {
+    if (state.currentView === 'project') renderFiles();
+    return;
+  }
+  const q = query.toLowerCase();
+  if (state.currentView !== 'project') return;
+  const files = getDisplayFiles();
+  const filtered = files.filter(f => f.name.toLowerCase().includes(q));
+  const el = document.getElementById('file-list');
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-text">검색 결과 없음</div><div class="empty-sub">"${query}"에 해당하는 항목이 없습니다</div></div>`;
+    return;
+  }
+  el.innerHTML = '';
+  filtered.forEach(f => {
+    const [sc, sl] = STATUS_MAP[f.status] || ['status-draft', f.status];
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML = `
+      <div class="col-check"><div class="check-circle ${f.checked?'checked':''}" onclick="toggleCheck('${f.id}',event)">${f.checked?'✓':''}</div></div>
+      <div class="col-icon"><span class="file-icon">${FILE_ICONS[f.type]||'📄'}</span></div>
+      <div class="col-name"><div class="file-name">${f.name}</div><div class="file-meta">${f.type.toUpperCase()}</div></div>
+      <div class="col-status"><span class="status-pill ${sc}">${sl}</span></div>
+      <div class="col-star"><button class="star-btn ${f.starred?'starred':''}" onclick="toggleStar('${f.id}',event)">★</button></div>
+    `;
+    div.onclick = (e) => { if(e.target.classList.contains('star-btn')||e.target.classList.contains('check-circle')) return; selectFile(f.id); };
+    el.appendChild(div);
+  });
+}
+
+// ═══════════ AI ═══════════
+const AI_RESPONSES = {
+  summary: `**문서 요약 결과**\n\n선택한 문서를 분석한 결과:\n\n• 주요 당사자: 원고(의뢰인) vs. 피고(상대방)\n• 청구 금액: 손해배상금 및 위자료 포함\n• 핵심 사실관계: 계약 위반에 따른 손해 발생\n• 관련 법령: 민법 제390조(채무불이행), 제750조(불법행위)\n\n본 문서는 총 12페이지로 구성되어 있으며, 첨부 자료 3건을 포함합니다.`,
+  extract: `**핵심 쟁점 분석**\n\n1. 계약의 성립 여부\n   → 청약·승낙의 합치 및 의사표시 하자 여부 검토 필요\n\n2. 손해 발생과 인과관계\n   → 피고의 행위와 손해 사이의 상당인과관계 입증 필요\n\n3. 손해액 산정\n   → 일실수익, 위자료, 치료비 항목별 입증\n\n4. 소멸시효\n   → 불법행위로부터 3년, 권리 발생일로부터 10년 검토`,
+  timeline: `**사건 타임라인**\n\n📅 2024.03.15 — 계약 체결\n📅 2024.06.01 — 피고 이행 거절\n📅 2024.07.20 — 내용증명 발송\n📅 2024.09.10 — 조정 시도 (결렬)\n📅 2025.01.15 — 소장 접수\n📅 2025.03.22 — 답변서 제출\n📅 2025.05.08 — 제1회 변론기일\n📅 2026.05.22 — 제5회 변론기일 (예정)`,
+};
+function openAI(type) {
+  state.aiType = type;
+  const titles = { summary: '📄 문서 요약', extract: '⚖️ 핵심 쟁점 추출', timeline: '📊 타임라인 생성' };
+  document.getElementById('ai-modal-title').textContent = titles[type];
+  document.getElementById('ai-result').innerHTML = `<div class="ai-loading"><div class="spinner"></div> AI가 분석 중입니다...</div>`;
+  openModal('modal-ai');
+  setTimeout(() => {
+    const text = AI_RESPONSES[type] || '분석 결과를 가져올 수 없습니다.';
+    document.getElementById('ai-result').innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/→/g,'→').replace(/\n/g,'<br>');
+  }, 1800);
+}
+
+// ═══════════ DELETE / CONFIRM ═══════════
+function confirmAction(title, bodyHtml, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').innerHTML = bodyHtml;
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.onclick = () => { closeModal('modal-confirm'); onOk(); };
+  openModal('modal-confirm');
+}
+
+// 프로젝트 삭제
+function deleteProject(id, e) {
+  e && e.stopPropagation();
+  const p = state.projects.find(x => x.id === id);
+  if (!p) return;
+  confirmAction(
+    '프로젝트 삭제',
+    `<span class="confirm-name">"${p.name}"</span> 프로젝트와 그 안의 모든 파일이 삭제됩니다.<br>이 작업은 되돌릴 수 없습니다.`,
+    () => {
+      state.projects = state.projects.filter(x => x.id !== id);
+      delete state.files[id];
+      if (state.currentProject === id) {
+        state.currentProject = null;
+        switchView('today');
+      }
+      renderProjects();
+      showToast(`🗑️ "${p.name}" 프로젝트가 삭제되었습니다`);
+    }
+  );
+}
+
+// 파일/폴더 삭제
+function deleteFile(fileId, e) {
+  e && e.stopPropagation();
+  const list = getDisplayFiles();
+  const f = list.find(x => x.id === fileId);
+  if (!f) return;
+  const label = f.type === 'folder' ? '폴더' : '파일';
+  const extra = f.type === 'folder' ? '<br>폴더 안의 모든 항목도 함께 삭제됩니다.' : '';
+  confirmAction(
+    `${label} 삭제`,
+    `<span class="confirm-name">"${f.name}"</span> ${label}을 삭제합니다.${extra}<br>이 작업은 되돌릴 수 없습니다.`,
+    () => {
+      const newList = list.filter(x => x.id !== fileId);
+      writeDisplayFiles(newList);
+      if (state.selectedFile === fileId) clearPanel();
+      renderFiles();
+      renderProjects();
+      showToast(`🗑️ "${f.name}"이(가) 삭제되었습니다`);
+    }
+  );
+}
+
+// ═══════════ MODAL HELPERS ═══════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target === m) closeModal(m.id); });
+});
+
+// ═══════════ TOAST ═══════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
