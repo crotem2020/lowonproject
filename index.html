@@ -1625,6 +1625,8 @@ function openProject(id) {
     document.getElementById(`${v}-view`).style.display = 'none';
     document.getElementById(`nav-${v}`)?.classList.remove('active');
   });
+  document.getElementById('admin-view').style.display = 'none';
+  document.getElementById('mypage-view').style.display = 'none';
   document.getElementById('project-view').style.display = 'flex';
 
   document.querySelectorAll('.project-item').forEach(el => {
@@ -1651,7 +1653,6 @@ function openFolder(fileId) {
   const folder = allFiles.find(f => f.id === fileId);
   if (folder) {
     document.getElementById('project-title').textContent = folder.name;
-    document.getElementById('project-subtitle').textContent = folder.memo || '';
   }
 }
 
@@ -1847,7 +1848,11 @@ function renderFiles() {
   });
 
   // Drop on empty space at bottom = move to end
-  el.addEventListener('dragover', e => {
+  // Remove previous listeners to prevent stacking across renderFiles calls
+  if (el._onDragOver) el.removeEventListener('dragover', el._onDragOver);
+  if (el._onDrop)     el.removeEventListener('drop',     el._onDrop);
+
+  el._onDragOver = e => {
     if (!drag.srcId) return;
     const overItem = e.target.closest('.file-item');
     if (!overItem) {
@@ -1858,8 +1863,8 @@ function renderFiles() {
       line.dataset.dropTarget = '__end__';
       el.appendChild(line);
     }
-  });
-  el.addEventListener('drop', e => {
+  };
+  el._onDrop = e => {
     if (!drag.srcId) return;
     const overItem = e.target.closest('.file-item');
     if (!overItem) {
@@ -1867,7 +1872,9 @@ function renderFiles() {
       reorderFiles(drag.srcId, null, false);
       clearDropIndicators();
     }
-  });
+  };
+  el.addEventListener('dragover', el._onDragOver);
+  el.addEventListener('drop',     el._onDrop);
 }
 
 function clearDropIndicators() {
@@ -1958,46 +1965,119 @@ function handleFileInputChange(input) {
   input.value = '';
 }
 
+// ── 폴더 엔트리 재귀 읽기 ──
+function readAllEntries(dirReader) {
+  return new Promise(resolve => {
+    const all = [];
+    const read = () => {
+      dirReader.readEntries(batch => {
+        if (!batch.length) { resolve(all); return; }
+        all.push(...batch);
+        read();
+      });
+    };
+    read();
+  });
+}
+
+async function entryToFileItem(entry) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (entry.isFile) {
+    const file = await new Promise((res, rej) => entry.file(res, rej));
+    return {
+      id: 'f' + Date.now() + Math.random().toString(36).slice(2),
+      type: getFileType(file.name),
+      name: file.name,
+      status: 'draft',
+      date: today,
+      starred: false,
+      checked: false,
+      progress: [{ text: '업로드 완료', done: true }, { text: '검토 대기', done: false }],
+      realFile: file,
+      fileSize: file.size,
+    };
+  } else {
+    // 폴더
+    const entries = await readAllEntries(entry.createReader());
+    const children = [];
+    for (const child of entries) {
+      const item = await entryToFileItem(child);
+      if (item) children.push(item);
+    }
+    return {
+      id: 'f' + Date.now() + Math.random().toString(36).slice(2),
+      type: 'folder',
+      name: entry.name,
+      status: 'draft',
+      date: today,
+      starred: false,
+      checked: false,
+      progress: [],
+      children,
+    };
+  }
+}
+
+// OS 파일/폴더 드롭 처리 (1개만)
+async function importDroppedItems(dataTransfer) {
+  if (!state.currentProject) { showToast('먼저 프로젝트를 선택하세요'); return; }
+
+  // webkitGetAsEntry 지원 시 사용 (폴더 감지 가능)
+  const items = Array.from(dataTransfer.items || []);
+  if (items.length && items[0].webkitGetAsEntry) {
+    const entry = items[0].webkitGetAsEntry(); // 첫 번째 1개만
+    if (!entry) return;
+    showToast('📥 업로드 중...');
+    try {
+      const item = await entryToFileItem(entry);
+      if (state.currentFolder) {
+        const allFiles = state.files[state.currentProject];
+        const folder = allFiles.find(x => x.id === state.currentFolder);
+        if (folder) { if (!folder.children) folder.children = []; folder.children.push(item); }
+      } else {
+        if (!state.files[state.currentProject]) state.files[state.currentProject] = [];
+        state.files[state.currentProject].push(item);
+      }
+      renderFiles();
+      renderProjects();
+      const label = item.type === 'folder'
+        ? `📁 "${item.name}" 폴더 (${item.children.length}개 파일)`
+        : `✅ "${item.name}"`;
+      showToast(`${label} 추가됐습니다`);
+      if (window.saveUserData) window.saveUserData(state.user);
+    } catch(e) {
+      showToast('업로드 중 오류가 발생했습니다');
+    }
+    return;
+  }
+
+  // fallback: files만 사용
+  const files = dataTransfer.files;
+  if (files.length) importRealFiles(files);
+}
+
 let _uploadZoneReady = false;
 function initUploadZone() {
-  if (_uploadZoneReady) return; // 중복 등록 방지
+  if (_uploadZoneReady) return;
   _uploadZoneReady = true;
-  const area = document.getElementById('file-area-drop');
-  const overlay = document.getElementById('ext-overlay');
   const dz = document.getElementById('upload-dropzone');
-  if (!area) return;
+  if (!dz) return;
 
-  let extDragCounter = 0;
-
-  // Detect when a real OS file is dragged over the whole project view
-  area.addEventListener('dragenter', e => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    extDragCounter++;
-    overlay.classList.add('show');
-  });
-  area.addEventListener('dragleave', e => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    extDragCounter--;
-    if (extDragCounter <= 0) { extDragCounter = 0; overlay.classList.remove('show'); }
-  });
-  area.addEventListener('dragover', e => {
-    if (e.dataTransfer.types.includes('Files')) e.preventDefault();
-  });
-  area.addEventListener('drop', e => {
+  // 드롭존 박스에서만 드롭 처리 — 전체 영역 리스너 없음
+  dz.addEventListener('dragover', e => {
     if (!e.dataTransfer.types.includes('Files')) return;
     e.preventDefault();
-    extDragCounter = 0;
-    overlay.classList.remove('show');
-    importRealFiles(e.dataTransfer.files);
+    e.stopPropagation();
+    dz.classList.add('dragover');
   });
-
-  // Drop zone widget own events
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('dragleave', e => {
+    if (!dz.contains(e.relatedTarget)) dz.classList.remove('dragover');
+  });
   dz.addEventListener('drop', e => {
     e.preventDefault();
+    e.stopPropagation();
     dz.classList.remove('dragover');
-    if (e.dataTransfer.files.length) importRealFiles(e.dataTransfer.files);
+    importDroppedItems(e.dataTransfer);
   });
 }
 
@@ -2052,16 +2132,15 @@ function renderProgress(file) {
 }
 
 function toggleStep(fileId, stepIdx) {
-  const files = getAllFiles();
-  const f = files.find(x => x.id === fileId);
+  const f = findFileInState(fileId);
   if (!f || !f.progress) return;
   f.progress[stepIdx].done = !f.progress[stepIdx].done;
   renderProgress(f);
+  if (window.saveUserData) window.saveUserData(state.user);
 }
 
 function addProgressStep() {
-  const files = getAllFiles();
-  const f = files.find(x => x.id === state.selectedFile);
+  const f = findFileInState(state.selectedFile);
   if (!f) return;
   const text = prompt('새 단계 이름:');
   if (!text) return;
@@ -2277,7 +2356,11 @@ function renderImportant() {
   el.innerHTML = '';
   let found = false;
   state.projects.forEach(p => {
-    const starred = (state.files[p.id] || []).filter(f => f.starred);
+    const collectStarred = (list) => (list || []).flatMap(f => [
+      ...(f.starred ? [f] : []),
+      ...(f.children ? collectStarred(f.children) : []),
+    ]);
+    const starred = collectStarred(state.files[p.id]);
     if (!starred.length) return;
     found = true;
     const sec = document.createElement('div');
@@ -2606,8 +2689,8 @@ function saveSettings() {
   const p = getProvider();
   const openaiVal = document.getElementById('settings-openai-key').value.trim();
   const geminiVal = document.getElementById('settings-gemini-key').value.trim();
-  if (openaiVal) localStorage.setItem('openai_api_key', openaiVal);
-  if (geminiVal) localStorage.setItem('gemini_api_key', geminiVal);
+  localStorage.setItem('openai_api_key', openaiVal);
+  localStorage.setItem('gemini_api_key', geminiVal);
   const activeKey = p === 'openai' ? openaiVal || getOpenAIKey() : geminiVal || getGeminiKey();
   if (!activeKey) { showToast('API 키를 입력하세요'); return; }
   updateSettingsStatus();
@@ -2742,6 +2825,10 @@ async function submitSuggest() {
   }
 }
 
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ═══════════ 관리자 탭 ═══════════
 function switchAdminTab(tab) {
   document.getElementById('admin-panel-members').style.display    = tab === 'members'     ? 'block' : 'none';
@@ -2766,11 +2853,11 @@ async function loadAdminSuggestions() {
     listEl.innerHTML = items.map(s => `
       <div class="suggest-card">
         <div class="suggest-card-meta">
-          <span class="suggest-card-name">${s.userName || s.userId}</span>
-          <span style="font-size:11px;color:var(--text3);">@${s.userId}</span>
+          <span class="suggest-card-name">${escapeHtml(s.userName || s.userId)}</span>
+          <span style="font-size:11px;color:var(--text3);">@${escapeHtml(s.userId)}</span>
           <span class="suggest-card-date" style="margin-left:auto;">${s.createdAt ? s.createdAt.slice(0,16).replace('T',' ') : ''}</span>
         </div>
-        <div class="suggest-card-text">${s.text}</div>
+        <div class="suggest-card-text">${escapeHtml(s.text)}</div>
       </div>`).join('');
   } catch(e) {
     listEl.innerHTML = '<div style="color:var(--danger);font-size:13px;">불러오기 실패: ' + e.message + '</div>';
