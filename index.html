@@ -1448,6 +1448,8 @@ function switchView(view) {
     document.getElementById('admin-view').style.display = 'block';
     loadAdminUsers();
   }
+  // 모바일에서 nav 클릭 시 사이드바 자동 닫기
+  if (window.innerWidth <= 680) closeSidebar();
 }
 
 async function loadAdminUsers() {
@@ -2504,12 +2506,6 @@ function closeSidebar() {
 }
 function togglePanel() {
   document.getElementById('right-panel').classList.toggle('panel-open');
-}
-// 모바일에서 nav 클릭 시 사이드바 자동 닫기
-const _origSwitchView = switchView;
-function switchView(view) {
-  _origSwitchView(view);
-  if (window.innerWidth <= 680) closeSidebar();
 }
 
 // ═══════════ TOAST ═══════════
